@@ -1,0 +1,76 @@
+# Virtual environments
+venv/
+ENV/
+env/
+.venv
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Project-specific
+*.db
+uploads/
+models/
+*.mp4
+*.avi
+*.mov
+
+# OS
+.DS_Store
+Thumbs.db
+*.log
+
+# Temporary
+.env
+.env.local
+temp/
+tmp/
+
+# Local runtime data and credentials
+attendance*.db*
+database.db*
+*.db-journal
+logs/
+profile_photos/
+static/profile_photos/
+.env.*
+!.env.example
+
+# Client-specific and pilot variants are maintained separately
+pilot_*.py
+build_*.py
+start_pilot*.ps1
+client_config*.json
+*Pilot*.spec
+*pilot*.spec
+backup/
+.history/
+scratch/
+pilot_env/
+source_code_backup*.zip

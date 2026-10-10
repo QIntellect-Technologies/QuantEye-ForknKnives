@@ -1,0 +1,2049 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Attendance & Department Reports | QIntellect System</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-dark: #090d16;
+            --card-bg: rgba(26, 34, 52, 0.75);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --primary-blue: #3b82f6;
+            --primary-cyan: #06b6d4;
+            --accent-purple: #8b5cf6;
+            --success-green: #10b981;
+            --danger-red: #ef4444;
+            --warning-amber: #f59e0b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-dark);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.12) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.12) 0px, transparent 50%);
+            background-attachment: fixed;
+            color: var(--text-main);
+            min-height: 100vh;
+            padding-bottom: 40px;
+        }
+
+        /* Header Navigation */
+        .navbar {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--card-border);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            padding: 14px 28px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--text-main);
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.35rem;
+            font-weight: 700;
+        }
+
+        .nav-brand i {
+            font-size: 1.6rem;
+            background: linear-gradient(135deg, var(--primary-cyan), var(--primary-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .nav-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.88rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: all 0.2s ease;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .nav-btn:hover, .nav-btn.active {
+            color: #ffffff;
+            background: rgba(59, 130, 246, 0.15);
+            border-color: rgba(59, 130, 246, 0.3);
+            box-shadow: 0 0 12px rgba(59, 130, 246, 0.2);
+        }
+
+        .container {
+            max-width: 1440px;
+            margin: 0 auto;
+            padding: 24px 28px;
+        }
+
+        /* Page Title */
+        .page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .page-title h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.85rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #ffffff, #94a3b8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .page-title p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-top: 4px;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-action {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            border-radius: 10px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-blue), var(--accent-purple));
+            color: white;
+            box-shadow: 0 4px 14px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.45);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--text-main);
+            border: 1px solid var(--card-border);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .btn-success {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.4);
+        }
+
+        .btn-success:hover {
+            background: rgba(16, 185, 129, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.4);
+        }
+
+        .btn-danger:hover {
+            background: rgba(239, 68, 68, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .btn-excel {
+            background: linear-gradient(135deg, #10b981, #047857);
+            color: #ffffff;
+            border: 1px solid rgba(16, 185, 129, 0.5);
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-excel:hover {
+            background: linear-gradient(135deg, #059669, #065f46);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
+        }
+
+        .btn-clear {
+            background: rgba(239, 68, 68, 0.15);
+            color: #fca5a5;
+            border: 1px solid rgba(239, 68, 68, 0.35);
+        }
+
+        .btn-clear:hover {
+            background: rgba(239, 68, 68, 0.3);
+            color: #ffffff;
+            transform: translateY(-1px);
+        }
+
+        /* Bulk Selection Action Toolbar */
+        .selection-toolbar {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.95));
+            border: 1px solid var(--primary-blue);
+            box-shadow: 0 8px 32px rgba(59, 130, 246, 0.25);
+            border-radius: 12px;
+            padding: 12px 20px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .selection-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.95rem;
+        }
+
+        .selection-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Filter Controls Section */
+        .filter-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 24px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .filter-row {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .date-presets {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(15, 23, 42, 0.6);
+            padding: 4px;
+            border-radius: 10px;
+            border: 1px solid var(--card-border);
+        }
+
+        .preset-btn {
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            background: transparent;
+            color: var(--text-muted);
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .preset-btn.active, .preset-btn:hover {
+            background: var(--primary-blue);
+            color: #ffffff;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+        }
+
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .filter-group label {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .form-select, .form-input {
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid var(--card-border);
+            color: var(--text-main);
+            padding: 9px 14px;
+            border-radius: 10px;
+            font-size: 0.88rem;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .form-select:focus, .form-input:focus {
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+
+        .custom-range-inputs {
+            display: none;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .custom-range-inputs.show {
+            display: flex;
+        }
+
+        .search-box {
+            flex-grow: 1;
+            position: relative;
+            min-width: 220px;
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding-left: 38px;
+        }
+
+        /* Top Metric Cards */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .metric-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+        }
+
+        .metric-card.total::before { background: var(--primary-blue); }
+        .metric-card.present::before { background: var(--success-green); }
+        .metric-card.absent::before { background: var(--danger-red); }
+        .metric-card.late::before { background: var(--warning-amber); }
+
+        .metric-info p {
+            font-size: 0.82rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 0.05em;
+        }
+
+        .metric-info h3 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2rem;
+            font-weight: 700;
+            margin-top: 4px;
+            line-height: 1;
+        }
+
+        .metric-info .badge {
+            display: inline-block;
+            margin-top: 6px;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-green { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+        .badge-red { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+        .badge-amber { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+        .badge-blue { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+
+        .metric-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+        }
+
+        .metric-card.total .metric-icon { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+        .metric-card.present .metric-icon { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+        .metric-card.absent .metric-icon { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+        .metric-card.late .metric-icon { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+
+        /* Department Summary Cards */
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+        }
+
+        .section-header h2 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .dept-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+
+        .dept-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            padding: 16px;
+            transition: transform 0.2s ease;
+        }
+
+        .dept-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+
+        .dept-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .dept-name {
+            font-weight: 700;
+            font-size: 1rem;
+            color: #ffffff;
+        }
+
+        .dept-count {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            background: rgba(255, 255, 255, 0.05);
+            padding: 2px 8px;
+            border-radius: 6px;
+        }
+
+        .dept-stats-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+        }
+
+        .progress-bar-bg {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.4s ease;
+        }
+
+        /* Attendance Data Table */
+        .table-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.88rem;
+        }
+
+        thead {
+            background: rgba(15, 23, 42, 0.9);
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        th {
+            padding: 14px 18px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            transition: background 0.15s ease;
+        }
+
+        tbody tr:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        td {
+            padding: 14px 18px;
+            vertical-align: middle;
+        }
+
+        .user-cell {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            background: #1e293b;
+        }
+
+        .user-avatar-placeholder {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-blue), var(--accent-purple));
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        .user-name-box {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .user-name-box strong {
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        .user-name-box span {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status-pill.present {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .status-pill.absent {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .status-pill.late {
+            background: rgba(245, 158, 11, 0.15);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .btn-toggle-status {
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-toggle-present {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+        }
+
+        .btn-toggle-present:hover {
+            background: rgba(16, 185, 129, 0.4);
+        }
+
+        .btn-toggle-absent {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+        }
+
+        .btn-toggle-absent:hover {
+            background: rgba(239, 68, 68, 0.4);
+        }
+
+        .empty-state {
+            padding: 48px;
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
+
+        .btn-complete-view {
+            padding: 7px 16px;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            border: 1px solid rgba(56, 189, 248, 0.4);
+            background: linear-gradient(135deg, rgba(14, 165, 233, 0.2), rgba(2, 132, 199, 0.3));
+            color: #38bdf8;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(14, 165, 233, 0.15);
+        }
+
+        .btn-complete-view:hover {
+            background: linear-gradient(135deg, rgba(14, 165, 233, 0.4), rgba(2, 132, 199, 0.5));
+            color: #ffffff;
+            border-color: #38bdf8;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 14px rgba(14, 165, 233, 0.3);
+        }
+
+        /* Complete View Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(10, 15, 29, 0.85);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.25s ease;
+            padding: 20px;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-container {
+            background: #0f172a;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 20px;
+            width: 100%;
+            max-width: 1000px;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+            transform: translateY(20px) scale(0.98);
+            transition: all 0.25s ease;
+        }
+
+        .modal-overlay.active .modal-container {
+            transform: translateY(0) scale(1);
+        }
+
+        .modal-header {
+            padding: 24px 28px;
+            background: rgba(30, 41, 59, 0.6);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .modal-body {
+            padding: 28px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .modal-footer {
+            padding: 18px 28px;
+            background: rgba(15, 23, 42, 0.95);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .emp-profile-banner {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+        }
+
+        .emp-profile-avatar {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--primary-cyan);
+            background: #1e293b;
+        }
+
+        .emp-profile-placeholder {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-blue), var(--accent-purple));
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.4rem;
+            border: 2px solid var(--primary-cyan);
+        }
+
+        .emp-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+
+        .emp-stat-card {
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            padding: 12px 16px;
+            text-align: center;
+        }
+
+        .emp-stat-card p {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .emp-stat-card h4 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        /* Print styles */
+        @media print {
+            .navbar, .filter-card, .header-actions, td:last-child, th:last-child, .modal-overlay {
+                display: none !important;
+            }
+            body {
+                background: white !important;
+                color: black !important;
+            }
+            .metric-card, .dept-card, .table-card {
+                border: 1px solid #ccc !important;
+                box-shadow: none !important;
+                background: white !important;
+                color: black !important;
+            }
+            th, td {
+                color: black !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <nav class="navbar">
+        <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+            <a href="/" class="nav-brand">
+                <i class="fa-solid fa-circle-nodes"></i>
+                <span>QIntellect Technologies</span>
+            </a>
+            <span style="color: var(--text-muted); opacity: 0.5;">|</span>
+            <span id="reportBranchBadge" style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 20px; font-weight: 700; font-size: 0.82rem; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); color: #60a5fa;">
+                <i class="fa-solid fa-building"></i> <span id="reportBranchNameText">Main Branch</span>
+            </span>
+            <span style="color: var(--text-muted); opacity: 0.5;">|</span>
+            <span style="color: var(--primary-cyan); font-weight: 700; font-size: 0.95rem;">Attendance Reports</span>
+            <span style="color: var(--text-muted); opacity: 0.5;">|</span>
+            <div id="reportStatusBadge" style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 20px; font-weight: 600; font-size: 0.82rem; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #34d399;">
+                <span style="width: 7px; height: 7px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
+                <span>System Online</span>
+            </div>
+            <span style="color: var(--text-muted); opacity: 0.5;">|</span>
+            <div style="display: inline-flex; align-items: center; gap: 6px; font-weight: 700; color: #f8fafc; font-size: 0.85rem; background: rgba(255,255,255,0.06); padding: 4px 12px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.08);">
+                <i class="fa-solid fa-user-tie" style="color: var(--primary-cyan);"></i>
+                <span id="reportHeaderUserName">Mr. Junaid</span>
+            </div>
+        </div>
+        <div class="nav-links">
+            <a href="/" class="nav-btn"><i class="fa-solid fa-house"></i> Dashboard</a>
+            <a href="/?tab=staff-view" class="nav-btn"><i class="fa-solid fa-users-gear"></i> Staff Directory</a>
+            <a href="/camera" class="nav-btn"><i class="fa-solid fa-video"></i> Live Camera</a>
+            <a href="/live-monitoring" class="nav-btn"><i class="fa-solid fa-desktop"></i> Live Rooms</a>
+            <a href="/attendance-report" class="nav-btn active"><i class="fa-solid fa-chart-pie"></i> Reports</a>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container">
+        
+        <!-- Page Title & Header Actions -->
+        <div class="page-header">
+            <div class="page-title">
+                <h1><i class="fa-solid fa-clipboard-user" style="color: var(--primary-cyan); margin-right: 8px;"></i> Attendance Reports</h1>
+                <p>View and manage employee attendance records.</p>
+                <p id="reportDateSubtitle" aria-live="polite" style="margin:4px 0 0; color:#64748b; font-size:0.82rem;"></p>
+            </div>
+            <div class="header-actions">
+                <button class="btn-action btn-primary" onclick="exportCSV()" title="Export filtered records to CSV" style="background: linear-gradient(135deg, #0284c7, #0369a1); font-weight: 600;">
+                    <i class="fa-solid fa-file-csv"></i> Export CSV
+                </button>
+                <button class="btn-action btn-clear" onclick="clearAllFilters()" title="Reset all filters to default">
+                    <i class="fa-solid fa-filter-circle-xmark"></i> Clear Filters
+                </button>
+                <button class="btn-action btn-secondary" onclick="refreshReport()" title="Refresh data">
+                    <i class="fa-solid fa-rotate-right"></i> Refresh
+                </button>
+                <button class="btn-action btn-success" onclick="bulkMarkPresent()">
+                    <i class="fa-solid fa-user-check"></i> Mark All Present
+                </button>
+                <button class="btn-action btn-danger" onclick="bulkMarkAbsent()">
+                    <i class="fa-solid fa-user-xmark"></i> Mark All Absent
+                </button>
+            </div>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="filter-card">
+            <div class="filter-row">
+                <!-- Date Presets -->
+                <div class="date-presets">
+                    <button class="preset-btn active" id="btnToday" onclick="setDateFilter('today')">Today</button>
+                    <button class="preset-btn" id="btnYesterday" onclick="setDateFilter('yesterday')">Yesterday</button>
+                    <button class="preset-btn" id="btnLast7" onclick="setDateFilter('last7')">Last 7 Days</button>
+                    <button class="preset-btn" id="btnThisWeek" onclick="setDateFilter('this_week')">This Week</button>
+                    <button class="preset-btn" id="btnThisMonth" onclick="setDateFilter('this_month')">This Month</button>
+                    <button class="preset-btn" id="btnLast30" onclick="setDateFilter('last30')">Last 30 Days</button>
+                    <button class="preset-btn" id="btnCustom" onclick="setDateFilter('custom')">Custom Range</button>
+                </div>
+
+                <!-- Custom Date Range Inputs -->
+                <div class="custom-range-inputs" id="customRangeGroup">
+                    <input type="date" id="startDate" class="form-input" onchange="handleCustomDateRangeChange()" oninput="handleCustomDateRangeChange()">
+                    <span style="color: var(--text-muted); font-weight: 600;">to</span>
+                    <input type="date" id="endDate" class="form-input" onchange="handleCustomDateRangeChange()" oninput="handleCustomDateRangeChange()">
+                    <button type="button" class="btn-action" onclick="handleCustomDateRangeChange(true)" style="padding: 8px 16px; font-size: 0.82rem; background: linear-gradient(135deg, #0284c7, #0369a1); color: #fff; border: 1px solid rgba(14,165,233,0.4); border-radius: 8px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" title="Apply custom date range filter">
+                        <i class="fa-solid fa-filter"></i> Apply
+                    </button>
+                </div>
+
+                <!-- Department Filter -->
+                <div class="filter-group">
+                    <label><i class="fa-solid fa-building"></i> Dept:</label>
+                    <select id="departmentFilter" class="form-select" onchange="fetchReport()">
+                        <option value="all">All Departments</option>
+                    </select>
+                </div>
+
+                <!-- Shift Filter -->
+                <div class="filter-group">
+                    <label><i class="fa-solid fa-business-time"></i> Shift:</label>
+                    <select id="shiftFilter" class="form-select" onchange="fetchReport()">
+                        <option value="all">All Shifts</option>
+                    </select>
+                </div>
+
+                <!-- Status Filter -->
+                <div class="filter-group">
+                    <label><i class="fa-solid fa-filter"></i> Status:</label>
+                    <select id="statusFilter" class="form-select" onchange="fetchReport()">
+                        <option value="all">All Statuses</option>
+                        <option value="present">Present Only</option>
+                        <option value="late">Late Only</option>
+                        <option value="absent">Absent Only</option>
+                        <option value="checked_out">Checked Out</option>
+                    </select>
+                </div>
+
+                <!-- Camera Filter -->
+                <div class="filter-group">
+                    <label><i class="fa-solid fa-camera"></i> Camera:</label>
+                    <select id="cameraFilter" class="form-select" onchange="fetchReport()">
+                        <option value="all">All Cameras</option>
+                    </select>
+                </div>
+
+                <!-- Live Search Box -->
+                <div class="search-box">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="searchInput" class="form-input" placeholder="Search by name, ID, position, CNIC..." oninput="handleSearchInput()">
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Overview Metric Cards -->
+        <div class="metrics-grid">
+            <div class="metric-card total">
+                <div class="metric-info">
+                    <p id="statTotalTitle">Total Enrolled</p>
+                    <h3 id="statTotal">0</h3>
+                    <span class="badge badge-blue" id="statTotalBadge">Active Profiles</span>
+                </div>
+                <div class="metric-icon">
+                    <i class="fa-solid fa-users"></i>
+                </div>
+            </div>
+
+            <div class="metric-card present">
+                <div class="metric-info">
+                    <p id="statPresentTitle">Total Present</p>
+                    <h3 id="statPresent">0</h3>
+                    <span class="badge badge-green" id="statPresentRate">0% Rate</span>
+                </div>
+                <div class="metric-icon">
+                    <i class="fa-solid fa-user-check"></i>
+                </div>
+            </div>
+
+            <div class="metric-card absent">
+                <div class="metric-info">
+                    <p id="statAbsentTitle">Total Absent</p>
+                    <h3 id="statAbsent">0</h3>
+                    <span class="badge badge-red" id="statAbsentRate">0% Absent</span>
+                </div>
+                <div class="metric-icon">
+                    <i class="fa-solid fa-user-xmark"></i>
+                </div>
+            </div>
+
+            <div class="metric-card late">
+                <div class="metric-info">
+                    <p id="statLateTitle">Late Arrivals</p>
+                    <h3 id="statLate">0</h3>
+                    <span class="badge badge-amber" id="statLateBadge">After Shift Start</span>
+                </div>
+                <div class="metric-icon">
+                    <i class="fa-solid fa-clock"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Department Summary Section -->
+        <div class="section-header">
+            <h2><i class="fa-solid fa-sitemap" style="color: var(--accent-purple); margin-right: 8px;"></i> Department Breakdown</h2>
+        </div>
+        <div class="dept-grid" id="deptSummaryGrid">
+            <!-- Dynamic Department Cards populated here -->
+        </div>
+
+        <!-- Full Attendance Master Table -->
+        <div class="section-header">
+            <h2 id="tableSectionTitle"><i class="fa-solid fa-list-check" style="color: var(--primary-blue); margin-right: 8px;"></i> Detailed Attendance Records</h2>
+        </div>
+
+        <!-- Bulk Selection Action Bar (Single Day only) -->
+        <div id="selectionToolbar" class="selection-toolbar" style="display: none;">
+            <div class="selection-info">
+                <i class="fa-solid fa-square-check" style="color: var(--primary-cyan); font-size: 1.2rem;"></i>
+                <span id="selectedCountText" style="font-weight: 700; color: #ffffff;">0 items selected</span>
+            </div>
+            <div class="selection-actions">
+                <button class="btn-action btn-success" onclick="markSelectedPresent()">
+                    <i class="fa-solid fa-user-check"></i> Mark Selected Present
+                </button>
+                <button class="btn-action btn-danger" onclick="markSelectedAbsent()">
+                    <i class="fa-solid fa-user-xmark"></i> Mark Selected Absent
+                </button>
+                <button class="btn-action btn-secondary" onclick="clearAllSelections()">
+                    <i class="fa-solid fa-xmark"></i> Deselect
+                </button>
+            </div>
+        </div>
+
+        <div class="table-card">
+            <div class="table-responsive">
+                <table>
+                    <thead id="attendanceTableHead">
+                        <!-- Dynamic headers inserted based on single day vs multi-day -->
+                    </thead>
+                    <tbody id="attendanceTableBody">
+                        <!-- Dynamic Rows inserted here -->
+                    </tbody>
+                </table>
+            </div>
+            <div id="emptyState" class="empty-state" style="display: none;">
+                <i class="fa-solid fa-folder-open"></i>
+                <p>No attendance records found for the selected filter criteria.</p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Complete View Modal (Dedicated Employee Attendance Detail View) -->
+    <div id="completeViewModal" class="modal-overlay" onclick="handleModalOverlayClick(event)">
+        <div class="modal-container" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <div class="emp-profile-banner">
+                    <div id="modalEmpAvatar"></div>
+                    <div>
+                        <h2 id="modalEmpName" style="color: #ffffff; font-size: 1.35rem; margin-bottom: 2px;">Employee Name</h2>
+                        <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap; font-size: 0.85rem; color: var(--text-muted);">
+                            <span id="modalEmpId" style="color: var(--primary-cyan); font-weight: 700;">#EMP-000</span>
+                            <span>•</span>
+                            <span id="modalEmpDept" style="color: #60a5fa; font-weight: 600;">Department</span>
+                            <span>•</span>
+                            <span id="modalEmpPos">Designation</span>
+                            <span>•</span>
+                            <span id="modalEmpShift" style="color: #cbd5e1;"><i class="fa-solid fa-business-time"></i> Shift</span>
+                        </div>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div id="modalPeriodBadge" style="background: rgba(14,165,233,0.15); border: 1px solid rgba(14,165,233,0.3); color: #38bdf8; padding: 6px 14px; border-radius: 20px; font-weight: 600; font-size: 0.85rem;">
+                        Period: 01 Oct 2026 - 07 Oct 2026
+                    </div>
+                    <button onclick="closeCompleteView()" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); color: #cbd5e1; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">
+                        <i class="fa-solid fa-xmark" style="font-size: 1.1rem;"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="modal-body">
+                <!-- Employee Summary KPIs -->
+                <div class="emp-stats-grid">
+                    <div class="emp-stat-card">
+                        <p>Total Days</p>
+                        <h4 id="modalStatTotalDays">7</h4>
+                    </div>
+                    <div class="emp-stat-card">
+                        <p>Working Days</p>
+                        <h4 id="modalStatWorkingDays" style="color: #38bdf8;">6</h4>
+                    </div>
+                    <div class="emp-stat-card">
+                        <p>Present Days</p>
+                        <h4 id="modalStatPresentDays" style="color: #34d399;">3</h4>
+                    </div>
+                    <div class="emp-stat-card">
+                        <p>Absent Days</p>
+                        <h4 id="modalStatAbsentDays" style="color: #f87171;">3</h4>
+                    </div>
+                    <div class="emp-stat-card">
+                        <p>Late Days</p>
+                        <h4 id="modalStatLateDays" style="color: #fbbf24;">2</h4>
+                    </div>
+                    <div class="emp-stat-card">
+                        <p>Attendance Rate</p>
+                        <h4 id="modalStatRate" style="color: #a78bfa;">50.0%</h4>
+                    </div>
+                </div>
+
+                <!-- Daily Detailed Table -->
+                <h3 style="font-size: 1rem; color: #f8fafc; margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-calendar-day" style="color: var(--primary-cyan);"></i> Daily Attendance History
+                </h3>
+                <div style="background: rgba(15,23,42,0.6); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; overflow: hidden;">
+                    <table style="width: 100%;">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Day</th>
+                                <th>Status</th>
+                                <th>Check-In</th>
+                                <th>Check-In Camera</th>
+                                <th>Check-Out</th>
+                                <th>Check-Out Camera</th>
+                                <th>Source</th>
+                                <th>Marked By</th>
+                                <th>Notes</th>
+                                <th>Shift</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modalDailyTableBody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button onclick="exportCurrentEmployeeCSV()" class="btn-action btn-primary" style="background: #0284c7; font-weight: 600;">
+                    <i class="fa-solid fa-file-csv"></i> Export Employee CSV
+                </button>
+                <button onclick="closeCompleteView()" class="btn-action btn-secondary" style="background: rgba(255,255,255,0.08); color: #f8fafc; font-weight: 600;">
+                    <i class="fa-solid fa-arrow-left"></i> Back to Attendance Reports
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Logic -->
+    <script>
+        let currentFilterDate = 'today';
+        let reportData = null;
+        let searchDebounceTimer = null;
+        let isFetching = false;
+        let activeModalUserId = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchBranchSettings();
+            fetchDepartments();
+            fetchShifts();
+            fetchCameras();
+            fetchReport();
+        });
+
+        async function fetchBranchSettings() {
+            try {
+                const res = await fetch('/api/settings/branch');
+                const data = await res.json();
+                if (data && data.admin_name) {
+                    const el = document.getElementById('reportHeaderUserName');
+                    if (el) el.textContent = data.admin_name;
+                }
+            } catch (err) {}
+        }
+
+        async function fetchDepartments() {
+            try {
+                const res = await fetch('/api/reports/departments');
+                const data = await res.json();
+                const select = document.getElementById('departmentFilter');
+                if (select && data.departments && data.departments.length > 0) {
+                    const currentVal = select.value;
+                    select.innerHTML = '<option value="all">All Departments</option>';
+                    data.departments.forEach(dept => {
+                        const opt = document.createElement('option');
+                        opt.value = dept;
+                        opt.textContent = dept;
+                        select.appendChild(opt);
+                    });
+                    if (currentVal && currentVal !== 'all' && data.departments.includes(currentVal)) {
+                        select.value = currentVal;
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to load departments:", err);
+            }
+        }
+
+        async function fetchShifts() {
+            try {
+                const res = await fetch('/api/reports/shifts');
+                const data = await res.json();
+                const select = document.getElementById('shiftFilter');
+                if (select && data.shifts && data.shifts.length > 0) {
+                    const currentVal = select.value;
+                    select.innerHTML = '<option value="all">All Shifts</option>';
+                    data.shifts.forEach(s => {
+                        const opt = document.createElement('option');
+                        opt.value = s.id;
+                        opt.textContent = `${s.name} (${s.start_time} - ${s.end_time})`;
+                        select.appendChild(opt);
+                    });
+                    if (currentVal && currentVal !== 'all') {
+                        select.value = currentVal;
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to load shifts:", err);
+            }
+        }
+
+        async function fetchCameras() {
+            try {
+                const res = await fetch('/api/cameras?active_only=false');
+                const cameras = await res.json();
+                const select = document.getElementById('cameraFilter');
+                if (select && cameras && cameras.length > 0) {
+                    const currentVal = select.value;
+                    select.innerHTML = '<option value="all">All Cameras</option>';
+                    cameras.forEach(cam => {
+                        const opt = document.createElement('option');
+                        opt.value = cam.camera_id;
+                        opt.textContent = `${cam.room_name || cam.name} (${cam.camera_id})`;
+                        select.appendChild(opt);
+                    });
+                    if (currentVal && currentVal !== 'all') {
+                        select.value = currentVal;
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to load cameras for filter:", err);
+            }
+        }
+
+        function handleCustomDateRangeChange(force = false) {
+            const sInput = document.getElementById('startDate');
+            const eInput = document.getElementById('endDate');
+            let s = sInput ? sInput.value : '';
+            let e = eInput ? eInput.value : '';
+
+            currentFilterDate = 'custom';
+            document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('btnCustom')?.classList.add('active');
+
+            const customGroup = document.getElementById('customRangeGroup');
+            if (customGroup) customGroup.classList.add('show');
+
+            if (s && e) {
+                if (s > e) {
+                    const temp = s;
+                    s = e;
+                    e = temp;
+                    if (sInput) sInput.value = s;
+                    if (eInput) eInput.value = e;
+                }
+                fetchReport();
+            } else if (force) {
+                fetchReport();
+            }
+        }
+
+        function setDateFilter(preset) {
+            currentFilterDate = preset;
+            document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
+            
+            const customGroup = document.getElementById('customRangeGroup');
+            if (customGroup) customGroup.classList.remove('show');
+
+            if (preset === 'today') {
+                document.getElementById('btnToday')?.classList.add('active');
+            } else if (preset === 'yesterday') {
+                document.getElementById('btnYesterday')?.classList.add('active');
+            } else if (preset === 'last7') {
+                document.getElementById('btnLast7')?.classList.add('active');
+            } else if (preset === 'this_week') {
+                document.getElementById('btnThisWeek')?.classList.add('active');
+            } else if (preset === 'this_month') {
+                document.getElementById('btnThisMonth')?.classList.add('active');
+            } else if (preset === 'last30') {
+                document.getElementById('btnLast30')?.classList.add('active');
+            } else if (preset === 'custom') {
+                document.getElementById('btnCustom')?.classList.add('active');
+                if (customGroup) customGroup.classList.add('show');
+
+                const sInput = document.getElementById('startDate');
+                const eInput = document.getElementById('endDate');
+                if (sInput && eInput && (!sInput.value || !eInput.value)) {
+                    const now = new Date();
+                    const year = now.getFullYear();
+                    const month = String(now.getMonth() + 1).padStart(2, '0');
+                    const day = String(now.getDate()).padStart(2, '0');
+                    if (!sInput.value) sInput.value = `${year}-${month}-01`;
+                    if (!eInput.value) eInput.value = `${year}-${month}-${day}`;
+                }
+                fetchReport();
+                return;
+            }
+            fetchReport();
+        }
+
+        function buildFilterQuery() {
+            const params = new URLSearchParams();
+            const dept = document.getElementById('departmentFilter')?.value || 'all';
+            const shift = document.getElementById('shiftFilter')?.value || 'all';
+            const status = document.getElementById('statusFilter')?.value || 'all';
+            const camera = document.getElementById('cameraFilter')?.value || 'all';
+            const search = document.getElementById('searchInput')?.value.trim() || '';
+
+            if (dept !== 'all') params.append('department', dept);
+            if (shift !== 'all') params.append('shift_id', shift);
+            if (status !== 'all') params.append('status', status);
+            if (camera !== 'all') params.append('camera_id', camera);
+            if (search) params.append('search', search);
+
+            const s = document.getElementById('startDate')?.value;
+            const e = document.getElementById('endDate')?.value;
+
+            if (currentFilterDate === 'custom' || (s && e)) {
+                if (s && e) {
+                    params.append('start_date', s <= e ? s : e);
+                    params.append('end_date', s <= e ? e : s);
+                } else if (s) {
+                    params.append('start_date', s);
+                    params.append('end_date', s);
+                } else if (e) {
+                    params.append('start_date', e);
+                    params.append('end_date', e);
+                } else {
+                    params.append('date', 'today');
+                }
+            } else if (currentFilterDate === 'today') {
+                params.append('date', 'today');
+            } else if (currentFilterDate === 'yesterday') {
+                params.append('date', 'yesterday');
+            } else if (currentFilterDate === 'last7') {
+                params.append('date', 'last7');
+            } else if (currentFilterDate === 'this_week') {
+                params.append('date', 'this_week');
+            } else if (currentFilterDate === 'this_month') {
+                params.append('date', 'this_month');
+            } else if (currentFilterDate === 'last30') {
+                params.append('date', 'last30');
+            } else {
+                params.append('date', 'today');
+            }
+
+            return params.toString();
+        }
+
+        async function fetchReport() {
+            if (isFetching) return;
+            isFetching = true;
+
+            const tbody = document.getElementById('attendanceTableBody');
+            const emptyState = document.getElementById('emptyState');
+            if (tbody && (!tbody.children || tbody.children.length === 0)) {
+                tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding:40px; color:var(--text-muted);"><i class="fa-solid fa-spinner fa-spin" style="font-size:1.5rem; color:var(--primary-cyan); margin-bottom:8px;"></i><p>Loading attendance records...</p></td></tr>';
+            }
+
+            const query = buildFilterQuery();
+            try {
+                const res = await fetch(`/api/reports/attendance?${query}`);
+                reportData = await res.json();
+                renderReportUI(reportData);
+            } catch (err) {
+                console.error("Failed to fetch report:", err);
+            } finally {
+                isFetching = false;
+            }
+        }
+
+        function handleSearchInput() {
+            clearTimeout(searchDebounceTimer);
+            searchDebounceTimer = setTimeout(() => {
+                fetchReport();
+            }, 300);
+        }
+
+        function refreshReport() {
+            fetchReport();
+        }
+
+        function clearAllFilters() {
+            currentFilterDate = 'today';
+            document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('btnToday')?.classList.add('active');
+            
+            const customGroup = document.getElementById('customRangeGroup');
+            if (customGroup) customGroup.classList.remove('show');
+            
+            const sDate = document.getElementById('startDate');
+            if (sDate) sDate.value = '';
+            const eDate = document.getElementById('endDate');
+            if (eDate) eDate.value = '';
+
+            const dept = document.getElementById('departmentFilter');
+            if (dept) dept.value = 'all';
+            const shift = document.getElementById('shiftFilter');
+            if (shift) shift.value = 'all';
+            const status = document.getElementById('statusFilter');
+            if (status) status.value = 'all';
+            const search = document.getElementById('searchInput');
+            if (search) search.value = '';
+
+            clearAllSelections();
+            fetchReport();
+        }
+
+        function exportCSV() {
+            const query = buildFilterQuery();
+            window.location.href = `/api/reports/export/csv?${query}`;
+        }
+
+        function renderReportUI(data) {
+            const isMultiDay = Boolean(data.is_multi_day);
+            const summary = data.summary || {};
+
+            // Metric Summary Cards
+            if (isMultiDay) {
+                document.getElementById('statTotalTitle').textContent = 'Total Enrolled';
+                document.getElementById('statTotal').textContent = summary.total_enrolled || 0;
+                document.getElementById('statTotalBadge').textContent = `${data.total_days || 0} Day Period`;
+
+                document.getElementById('statPresentTitle').textContent = 'Attended in Period';
+                document.getElementById('statPresent').textContent = summary.attended_count || 0;
+                document.getElementById('statPresentRate').textContent = `${summary.total_present_days || 0} Present Days`;
+
+                document.getElementById('statAbsentTitle').textContent = 'Zero Attendance';
+                document.getElementById('statAbsent').textContent = summary.zero_attendance_count || 0;
+                document.getElementById('statAbsentRate').textContent = `${summary.total_absent_days || 0} Absent Days`;
+
+                document.getElementById('statLateTitle').textContent = 'Late Instances';
+                document.getElementById('statLate').textContent = summary.total_late_days || 0;
+                document.getElementById('statLateBadge').textContent = `${summary.attendance_rate || 0}% Overall Rate`;
+
+                document.getElementById('tableSectionTitle').innerHTML = '<i class="fa-solid fa-users" style="color: var(--primary-cyan); margin-right: 8px;"></i> Multi-Day Employee Attendance Summary';
+            } else {
+                document.getElementById('statTotalTitle').textContent = 'Total Employees';
+                document.getElementById('statTotal').textContent = summary.total_matching || summary.total_registered || 0;
+                document.getElementById('statTotalBadge').textContent = 'Single Day Report';
+
+                document.getElementById('statPresentTitle').textContent = 'Total Present';
+                document.getElementById('statPresent').textContent = summary.present || 0;
+                document.getElementById('statPresentRate').textContent = `${summary.attendance_rate || 0}% Rate`;
+
+                document.getElementById('statAbsentTitle').textContent = 'Total Absent';
+                document.getElementById('statAbsent').textContent = summary.absent || 0;
+                const absRate = (summary.total_matching || summary.total_registered) > 0 ? ((summary.absent / (summary.total_matching || summary.total_registered)) * 100).toFixed(1) : 0;
+                document.getElementById('statAbsentRate').textContent = `${absRate}% Absent`;
+
+                document.getElementById('statLateTitle').textContent = 'Late Arrivals';
+                document.getElementById('statLate').textContent = summary.late || 0;
+                document.getElementById('statLateBadge').textContent = 'After Shift Start';
+
+                document.getElementById('tableSectionTitle').innerHTML = '<i class="fa-solid fa-list-check" style="color: var(--primary-blue); margin-right: 8px;"></i> Daily Attendance Log';
+            }
+
+            document.getElementById('reportDateSubtitle').textContent = `Report Period: ${data.date_label || 'Today'} • Generated at ${new Date().toLocaleTimeString()}`;
+
+            // Render Department Breakdown Grid
+            const deptGrid = document.getElementById('deptSummaryGrid');
+            deptGrid.innerHTML = '';
+
+            if (data.departments && data.departments.length > 0) {
+                data.departments.forEach(dept => {
+                    const rate = dept.attendance_rate || 0;
+                    let barColor = 'linear-gradient(90deg, #10b981, #059669)';
+                    if (rate < 50) barColor = 'linear-gradient(90deg, #ef4444, #dc2626)';
+                    else if (rate < 75) barColor = 'linear-gradient(90deg, #f59e0b, #d97706)';
+
+                    const card = document.createElement('div');
+                    card.className = 'dept-card';
+                    card.innerHTML = `
+                        <div class="dept-top">
+                            <span class="dept-name">${dept.department}</span>
+                            <span class="dept-count">${dept.total_staff || dept.total || 0} Staff</span>
+                        </div>
+                        <div class="dept-stats-row">
+                            <span style="color: #34d399;"><i class="fa-solid fa-check"></i> ${dept.present_days !== undefined ? dept.present_days + ' Days' : dept.present + ' Present'}</span>
+                            <span style="color: #f87171;"><i class="fa-solid fa-xmark"></i> ${dept.absent_days !== undefined ? dept.absent_days + ' Days' : dept.absent + ' Absent'}</span>
+                            <span style="font-weight: 700; color: #ffffff;">${rate}%</span>
+                        </div>
+                        <div class="progress-bar-bg">
+                            <div class="progress-bar-fill" style="width: ${rate}%; background: ${barColor};"></div>
+                        </div>
+                    `;
+                    deptGrid.appendChild(card);
+                });
+            } else {
+                deptGrid.innerHTML = '<p style="color: var(--text-muted); font-size: 0.9rem;">No department summary data available.</p>';
+            }
+
+            // Render Table
+            renderTableRows(data.records || [], isMultiDay);
+        }
+
+        function renderTableRows(records, isMultiDay) {
+            const thead = document.getElementById('attendanceTableHead');
+            const tbody = document.getElementById('attendanceTableBody');
+            const emptyState = document.getElementById('emptyState');
+            const toolbar = document.getElementById('selectionToolbar');
+            
+            tbody.innerHTML = '';
+            clearAllSelections();
+
+            // Set dynamic Table Headers
+            if (isMultiDay) {
+                if (toolbar) toolbar.style.display = 'none';
+                thead.innerHTML = `
+                    <tr>
+                        <th style="width: 80px;"># ID</th>
+                        <th>Employee</th>
+                        <th>Department</th>
+                        <th>Designation</th>
+                        <th>Assigned Shift</th>
+                        <th style="text-align: center;">Present Days</th>
+                        <th style="text-align: center;">Absent Days</th>
+                        <th style="text-align: center;">Late Days</th>
+                        <th style="text-align: center;">Attendance %</th>
+                        <th style="text-align: center; width: 150px;">Action</th>
+                    </tr>
+                `;
+            } else {
+                thead.innerHTML = `
+                    <tr>
+                        <th style="width: 42px; text-align: center;">
+                            <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll(this)" style="transform: scale(1.2); cursor: pointer;" title="Select / Deselect All">
+                        </th>
+                        <th style="width: 80px;"># ID</th>
+                        <th>Employee</th>
+                        <th>Department</th>
+                        <th>Shift</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th>Check-In</th>
+                        <th>Check-In Camera</th>
+                        <th>Check-Out</th>
+                        <th>Check-Out Camera</th>
+                        <th>Source</th>
+                        <th>Marked By</th>
+                        <th>Notes</th>
+                        <th style="text-align: center;">Quick Action</th>
+                    </tr>
+                `;
+            }
+
+            if (!records || records.length === 0) {
+                emptyState.style.display = 'block';
+                return;
+            }
+            emptyState.style.display = 'none';
+
+            records.forEach(r => {
+                const tr = document.createElement('tr');
+                const initial = r.name ? r.name.charAt(0).toUpperCase() : '?';
+                let photoHtml = `<div class="user-avatar-placeholder">${initial}</div>`;
+                if (r.photo_path) {
+                    photoHtml = `<img src="/api/users/${r.user_id}/photo" class="user-avatar" onerror="this.onerror=null; this.outerHTML='<div class=\\'user-avatar-placeholder\\'>${initial}</div>'">`;
+                }
+
+                const empIdDisp = `EMP-${String(r.user_id).padStart(3, '0')}`;
+                const shiftDisplay = r.shift_name || 'General Morning Shift';
+
+                if (isMultiDay) {
+                    // ONE ROW PER EMPLOYEE SUMMARY
+                    const presRate = r.attendance_rate || 0;
+                    let rateColor = '#34d399';
+                    if (presRate < 50) rateColor = '#f87171';
+                    else if (presRate < 75) rateColor = '#fbbf24';
+
+                    tr.innerHTML = `
+                        <td><strong style="color:var(--primary-cyan); font-size:0.85rem;">${empIdDisp}</strong></td>
+                        <td>
+                            <div class="user-cell">
+                                ${photoHtml}
+                                <div class="user-name-box">
+                                    <strong>${r.name}</strong>
+                                    <span>${r.position || 'Staff Member'}</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td><span style="color: #60a5fa; font-weight: 600;">${r.department || 'General'}</span></td>
+                        <td><span style="color: #cbd5e1; font-size: 0.85rem;">${r.position || 'Staff Member'}</span></td>
+                        <td><span style="color: #cbd5e1; font-size: 0.82rem;"><i class="fa-solid fa-business-time" style="color: var(--primary-cyan); margin-right: 4px;"></i>${shiftDisplay}</span></td>
+                        <td style="text-align: center;">
+                            <span class="status-pill present" style="padding: 4px 10px; font-weight: 700;">
+                                <i class="fa-solid fa-check"></i> ${r.present_display || (r.present_days + ' / ' + r.working_days)}
+                            </span>
+                        </td>
+                        <td style="text-align: center;">
+                            <span class="status-pill absent" style="padding: 4px 10px; font-weight: 700;">
+                                <i class="fa-solid fa-xmark"></i> ${r.absent_display || (r.absent_days + ' / ' + r.working_days)}
+                            </span>
+                        </td>
+                        <td style="text-align: center;">
+                            <span class="status-pill late" style="padding: 4px 10px; font-weight: 700;">
+                                <i class="fa-solid fa-clock"></i> ${r.late_days || 0}
+                            </span>
+                        </td>
+                        <td style="text-align: center;">
+                            <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+                                <strong style="color: ${rateColor}; font-size: 0.95rem;">${presRate}%</strong>
+                                <div class="progress-bar-bg" style="width: 60px; height: 5px;">
+                                    <div class="progress-bar-fill" style="width: ${presRate}%; background: ${rateColor};"></div>
+                                </div>
+                            </div>
+                        </td>
+                        <td style="text-align: center;">
+                            <button class="btn-complete-view" onclick="openCompleteView(${r.user_id})">
+                                <i class="fa-solid fa-calendar-days"></i> Complete View
+                            </button>
+                        </td>
+                    `;
+                } else {
+                    // SINGLE DAY VIEW
+                    let statusBadge = '';
+                    const st = (r.status || 'absent').toLowerCase();
+                    if (st === 'present') {
+                        statusBadge = `<span class="status-pill present"><i class="fa-solid fa-circle-check"></i> Present</span>`;
+                    } else if (st === 'late') {
+                        statusBadge = `<span class="status-pill late"><i class="fa-solid fa-clock"></i> Late</span>`;
+                    } else if (st === 'checked_out') {
+                        statusBadge = `<span class="status-pill present" style="background:rgba(59,130,246,0.15); color:#60a5fa; border:1px solid rgba(59,130,246,0.3);"><i class="fa-solid fa-arrow-right-from-bracket"></i> Checked Out</span>`;
+                    } else {
+                        statusBadge = `<span class="status-pill absent"><i class="fa-solid fa-circle-xmark"></i> Absent</span>`;
+                    }
+
+                    const firstTime = r.first_seen ? formatTime(r.first_seen) : '-';
+                    const lastTime = r.last_seen ? formatTime(r.last_seen) : '-';
+                    const checkinCam = r.checkin_camera_name || r.checkin_camera || r.location || '-';
+                    const checkoutCam = r.checkout_camera_name || r.checkout_camera || r.checkout_location || '-';
+
+                    let actionBtn = '';
+                    if (st === 'absent') {
+                        actionBtn = `<button class="btn-toggle-status btn-toggle-present" onclick="markUserPresent(${r.user_id})"><i class="fa-solid fa-check"></i> Mark Present</button>`;
+                    } else {
+                        actionBtn = `<button class="btn-toggle-status btn-toggle-absent" onclick="markUserAbsent(${r.user_id})"><i class="fa-solid fa-xmark"></i> Mark Absent</button>`;
+                    }
+
+                    tr.innerHTML = `
+                        <td style="text-align: center;">
+                            <input type="checkbox" class="row-checkbox" value="${r.user_id}" onchange="updateSelectionToolbar()" style="transform: scale(1.15); cursor: pointer;">
+                        </td>
+                        <td><strong style="color:var(--primary-cyan); font-size:0.85rem;">${empIdDisp}</strong></td>
+                        <td>
+                            <div class="user-cell">
+                                ${photoHtml}
+                                <div class="user-name-box">
+                                    <strong>${r.name}</strong>
+                                    <span>${r.position || 'Staff Member'}</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td><span style="color: #60a5fa; font-weight: 600;">${r.department || 'General'}</span></td>
+                        <td><span style="color: #cbd5e1; font-size: 0.82rem;"><i class="fa-solid fa-business-time" style="color: var(--primary-cyan); margin-right: 4px;"></i>${shiftDisplay}</span></td>
+                        <td><span style="color: #e2e8f0; font-weight: 500;">${r.date || 'Today'}</span></td>
+                        <td>${statusBadge}</td>
+                        <td><i class="fa-regular fa-clock" style="color: var(--text-muted); margin-right: 4px;"></i>${firstTime}</td>
+                        <td><span style="font-size: 0.82rem; color: #cbd5e1;"><i class="fa-solid fa-video" style="color: var(--primary-cyan); margin-right: 4px;"></i>${checkinCam}</span></td>
+                        <td><i class="fa-solid fa-arrow-right-from-bracket" style="color: var(--text-muted); margin-right: 4px;"></i>${lastTime}</td>
+                        <td><span style="font-size: 0.82rem; color: #cbd5e1;"><i class="fa-solid fa-video" style="color: #f59e0b; margin-right: 4px;"></i>${checkoutCam}</span></td>
+                        <td><span class="badge ${r.source === 'manual' ? 'bg-warning text-dark' : 'bg-secondary'}">${r.source === 'manual' ? 'Manual by Admin' : (r.source ? 'Auto by System' : '-')}</span></td>
+                        <td><span style="color: #cbd5e1; font-size: 0.82rem;">${r.marked_by || (r.source === 'manual' ? 'Admin' : (r.source ? 'System' : '-'))}</span></td>
+                        <td><span style="color: #cbd5e1; font-size: 0.82rem;">${r.notes || '-'}</span></td>
+                        <td style="text-align: center;">${actionBtn}</td>
+                    `;
+                }
+
+                tbody.appendChild(tr);
+            });
+        }
+
+        // ================= COMPLETE VIEW MODAL LOGIC =================
+        function openCompleteView(userId) {
+            if (!reportData || !reportData.records) return;
+            const emp = reportData.records.find(r => String(r.user_id) === String(userId));
+            if (!emp) return;
+
+            activeModalUserId = userId;
+
+            // Profile Header
+            const initial = emp.name ? emp.name.charAt(0).toUpperCase() : '?';
+            const avatarContainer = document.getElementById('modalEmpAvatar');
+            if (emp.photo_path) {
+                avatarContainer.innerHTML = `<img src="/api/users/${emp.user_id}/photo" class="emp-profile-avatar" onerror="this.onerror=null; this.outerHTML='<div class=\\'emp-profile-placeholder\\'>${initial}</div>'">`;
+            } else {
+                avatarContainer.innerHTML = `<div class="emp-profile-placeholder">${initial}</div>`;
+            }
+
+            document.getElementById('modalEmpName').textContent = emp.name || 'Employee';
+            document.getElementById('modalEmpId').textContent = `EMP-${String(emp.user_id).padStart(3, '0')}`;
+            document.getElementById('modalEmpDept').textContent = emp.department || 'General';
+            document.getElementById('modalEmpPos').textContent = emp.position || 'Staff Member';
+            document.getElementById('modalEmpShift').innerHTML = `<i class="fa-solid fa-business-time" style="color: var(--primary-cyan); margin-right: 4px;"></i>${emp.shift_name || 'General Shift'}`;
+
+            const dateLabel = reportData.date_label || 'Reporting Period';
+            document.getElementById('modalPeriodBadge').textContent = `Period: ${dateLabel}`;
+
+            // KPIs
+            document.getElementById('modalStatTotalDays').textContent = emp.total_days || 0;
+            document.getElementById('modalStatWorkingDays').textContent = emp.working_days || 0;
+            document.getElementById('modalStatPresentDays').textContent = emp.present_days || 0;
+            document.getElementById('modalStatAbsentDays').textContent = emp.absent_days || 0;
+            document.getElementById('modalStatLateDays').textContent = emp.late_days || 0;
+            document.getElementById('modalStatRate').textContent = `${emp.attendance_rate || 0}%`;
+
+            // Daily History Rows
+            const dailyTbody = document.getElementById('modalDailyTableBody');
+            dailyTbody.innerHTML = '';
+
+            const dailyRecords = emp.daily_records || [];
+            if (dailyRecords.length === 0) {
+                dailyTbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px; color:var(--text-muted);">No daily records available for this period.</td></tr>';
+            } else {
+                dailyRecords.forEach(d => {
+                    const tr = document.createElement('tr');
+                    const st = (d.status || 'absent').toLowerCase();
+                    let stBadge = '';
+
+                    if (st === 'present') {
+                        stBadge = `<span class="status-pill present"><i class="fa-solid fa-circle-check"></i> Present</span>`;
+                    } else if (st === 'late') {
+                        stBadge = `<span class="status-pill late"><i class="fa-solid fa-clock"></i> Late</span>`;
+                    } else if (st === 'checked_out') {
+                        stBadge = `<span class="status-pill present" style="background:rgba(59,130,246,0.15); color:#60a5fa; border:1px solid rgba(59,130,246,0.3);"><i class="fa-solid fa-arrow-right-from-bracket"></i> Checked Out</span>`;
+                    } else if (st === 'weekend') {
+                        stBadge = `<span class="status-pill" style="background:rgba(148,163,184,0.15); color:#94a3b8; border:1px solid rgba(148,163,184,0.3);"><i class="fa-solid fa-bed"></i> Weekend / Off</span>`;
+                    } else if (st === 'on_leave') {
+                        stBadge = `<span class="status-pill" style="background:rgba(20,184,166,0.15); color:#2dd4bf; border:1px solid rgba(20,184,166,0.3);"><i class="fa-solid fa-envelope-open-text"></i> On Leave</span>`;
+                    } else {
+                        stBadge = `<span class="status-pill absent"><i class="fa-solid fa-circle-xmark"></i> Absent</span>`;
+                    }
+
+                    const checkInTime = d.first_seen ? formatTime(d.first_seen) : '-';
+                    const checkOutTime = d.last_seen ? formatTime(d.last_seen) : '-';
+                    const checkInCam = d.checkin_camera_name || d.checkin_camera || d.location || '-';
+                    const checkOutCam = d.checkout_camera_name || d.checkout_camera || d.checkout_location || '-';
+                    const sourceText = d.source === 'manual' ? 'Manual by Admin' : (d.source ? 'Auto by System' : '-');
+                    const markedByText = d.marked_by || (d.source === 'manual' ? 'Admin' : (d.source ? 'System' : '-'));
+
+                    tr.innerHTML = `
+                        <td><strong style="color: #ffffff;">${d.date_formatted || d.date}</strong></td>
+                        <td><span style="color: #94a3b8; font-weight: 600;">${d.day || '-'}</span></td>
+                        <td>${stBadge}</td>
+                        <td><i class="fa-regular fa-clock" style="color: var(--text-muted); margin-right: 4px;"></i>${checkInTime}</td>
+                        <td><span style="font-size: 0.82rem; color: #cbd5e1;"><i class="fa-solid fa-video" style="color: var(--primary-cyan); margin-right: 4px;"></i>${checkInCam}</span></td>
+                        <td><i class="fa-solid fa-arrow-right-from-bracket" style="color: var(--text-muted); margin-right: 4px;"></i>${checkOutTime}</td>
+                        <td><span style="font-size: 0.82rem; color: #cbd5e1;"><i class="fa-solid fa-video" style="color: #f59e0b; margin-right: 4px;"></i>${checkOutCam}</span></td>
+                        <td><div style="display:flex; align-items:center; gap:6px; flex-wrap:nowrap; white-space:nowrap;"><span class="badge ${d.source === 'manual' ? 'bg-warning text-dark' : 'bg-secondary'}">${sourceText}</span><span style="color: #cbd5e1; font-size: 0.82rem;">By: ${markedByText}</span></div></td>
+                        <td><span style="color: #cbd5e1; font-size: 0.82rem;">${d.notes || '-'}</span></td>
+                        <td><span style="color: #cbd5e1; font-size: 0.82rem;">${d.shift_name || emp.shift_name || 'General'}</span></td>
+                    `;
+                    dailyTbody.appendChild(tr);
+                });
+            }
+
+            const modal = document.getElementById('completeViewModal');
+            if (modal) modal.classList.add('active');
+        }
+
+        function closeCompleteView() {
+            const modal = document.getElementById('completeViewModal');
+            if (modal) modal.classList.remove('active');
+            activeModalUserId = null;
+        }
+
+        function handleModalOverlayClick(event) {
+            if (event.target && event.target.classList.contains('modal-overlay')) {
+                closeCompleteView();
+            }
+        }
+
+        function exportCurrentEmployeeCSV() {
+            if (!activeModalUserId) return;
+            const query = buildFilterQuery();
+            window.location.href = `/api/reports/export/employee-csv?user_id=${activeModalUserId}&${query}`;
+        }
+
+        // ================= BULK SELECTION (SINGLE DAY) =================
+        function toggleSelectAll(master) {
+            const checkboxes = document.querySelectorAll('.row-checkbox');
+            checkboxes.forEach(cb => {
+                cb.checked = master.checked;
+            });
+            updateSelectionToolbar();
+        }
+
+        function updateSelectionToolbar() {
+            const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+            const totalBoxes = document.querySelectorAll('.row-checkbox');
+            const master = document.getElementById('selectAllCheckbox');
+            const toolbar = document.getElementById('selectionToolbar');
+            const countText = document.getElementById('selectedCountText');
+
+            if (master) {
+                master.checked = totalBoxes.length > 0 && checkedBoxes.length === totalBoxes.length;
+                master.indeterminate = checkedBoxes.length > 0 && checkedBoxes.length < totalBoxes.length;
+            }
+
+            if (checkedBoxes.length > 0) {
+                if (toolbar) toolbar.style.display = 'flex';
+                if (countText) countText.textContent = `${checkedBoxes.length} staff member${checkedBoxes.length > 1 ? 's' : ''} selected`;
+            } else {
+                if (toolbar) toolbar.style.display = 'none';
+            }
+        }
+
+        function clearAllSelections() {
+            const master = document.getElementById('selectAllCheckbox');
+            if (master) {
+                master.checked = false;
+                master.indeterminate = false;
+            }
+            document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = false);
+            const toolbar = document.getElementById('selectionToolbar');
+            if (toolbar) toolbar.style.display = 'none';
+        }
+
+        async function markSelectedPresent() {
+            const selectedIds = Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => parseInt(cb.value));
+            if (selectedIds.length === 0) return;
+
+            if (!confirm(`Mark ${selectedIds.length} selected staff member(s) PRESENT?`)) return;
+
+            try {
+                const res = await fetch('/api/attendance/bulk-mark', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'present', user_ids: selectedIds })
+                });
+                const json = await res.json();
+                clearAllSelections();
+                fetchReport();
+            } catch (err) {
+                alert("Error marking selected present: " + err);
+            }
+        }
+
+        async function markSelectedAbsent() {
+            const selectedIds = Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => parseInt(cb.value));
+            if (selectedIds.length === 0) return;
+
+            if (!confirm(`Mark ${selectedIds.length} selected staff member(s) ABSENT?`)) return;
+
+            try {
+                const res = await fetch('/api/attendance/bulk-mark', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'absent', user_ids: selectedIds })
+                });
+                const json = await res.json();
+                clearAllSelections();
+                fetchReport();
+            } catch (err) {
+                alert("Error marking selected absent: " + err);
+            }
+        }
+
+        function formatTime(isoString) {
+            if (!isoString) return '-';
+            const strVal = String(isoString).trim();
+            if (!strVal || strVal === 'None' || strVal === 'null' || strVal === '--:--' || strVal === '-') return '-';
+            try {
+                if (/am|pm/i.test(strVal)) return strVal;
+                let s = strVal;
+                if (s.includes(' ')) s = s.split(' ')[1];
+                if (s.includes('T')) s = s.split('T')[1];
+                s = s.split('.')[0];
+                const parts = s.split(':');
+                if (parts.length >= 2) {
+                    let h = parseInt(parts[0], 10);
+                    const m = parts[1];
+                    const ampm = h >= 12 ? 'PM' : 'AM';
+                    h = h % 12 || 12;
+                    return `${String(h).padStart(2, '0')}:${m} ${ampm}`;
+                }
+                const date = new Date(strVal.replace(' ', 'T'));
+                if (!isNaN(date.getTime())) {
+                    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+                }
+            } catch (e) {}
+            return strVal;
+        }
+
+        async function markUserPresent(userId) {
+            try {
+                const targetDate = reportData?.start_date || null;
+                const res = await fetch(`/api/users/${userId}/mark-present`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ date: targetDate })
+                });
+                const json = await res.json();
+                if (json.success) {
+                    fetchReport();
+                } else {
+                    alert("Failed to mark present: " + (json.error || json.message));
+                }
+            } catch (err) {
+                alert("Error marking present: " + err);
+            }
+        }
+
+        async function markUserAbsent(userId) {
+            try {
+                const targetDate = reportData?.start_date || null;
+                const res = await fetch(`/api/users/${userId}/mark-absent`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ date: targetDate })
+                });
+                const json = await res.json();
+                if (json.success) {
+                    fetchReport();
+                } else {
+                    alert("Failed to mark absent: " + (json.error || json.message));
+                }
+            } catch (err) {
+                alert("Error marking absent: " + err);
+            }
+        }
+
+        async function bulkMarkPresent() {
+            if (!confirm("Are you sure you want to mark ALL active staff present for today?")) return;
+            try {
+                const res = await fetch('/api/attendance/bulk-mark', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'present' })
+                });
+                const json = await res.json();
+                fetchReport();
+            } catch (err) {
+                alert("Error marking all present: " + err);
+            }
+        }
+
+        async function bulkMarkAbsent() {
+            if (!confirm("Are you sure you want to mark ALL active staff absent for today?")) return;
+            try {
+                const res = await fetch('/api/attendance/bulk-mark', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'absent' })
+                });
+                const json = await res.json();
+                fetchReport();
+            } catch (err) {
+                alert("Error marking all absent: " + err);
+            }
+        }
+
+        // Real-time backend system health checker
+        function checkReportHealth() {
+            fetch('/api/metrics').then(r => {
+                const b = document.getElementById('reportStatusBadge');
+                if (b) {
+                    if (r.ok) {
+                        b.innerHTML = '<span style="width: 7px; height: 7px; border-radius: 50%; background: #10b981; display: inline-block;"></span><span>System Online</span>';
+                        b.style.color = '#34d399';
+                    } else {
+                        b.innerHTML = '<span style="width: 7px; height: 7px; border-radius: 50%; background: #ef4444; display: inline-block;"></span><span>System Offline</span>';
+                        b.style.color = '#f87171';
+                    }
+                }
+            }).catch(() => {
+                const b = document.getElementById('reportStatusBadge');
+                if (b) {
+                    b.innerHTML = '<span style="width: 7px; height: 7px; border-radius: 50%; background: #ef4444; display: inline-block;"></span><span>System Offline</span>';
+                    b.style.color = '#f87171';
+                }
+            });
+        }
+        // Dynamic branch & admin profile settings
+        function loadReportBranchSettings() {
+            fetch('/api/settings/branch').then(r => r.json()).then(data => {
+                if (data) {
+                    const branchDisplay = (data.branch_name || '').trim();
+                    const cityDisplay = (data.city || '').trim();
+                    let fullBranchText = branchDisplay;
+                    if (branchDisplay && cityDisplay) {
+                        fullBranchText = `${branchDisplay} (${cityDisplay})`;
+                    } else if (!branchDisplay && cityDisplay) {
+                        fullBranchText = cityDisplay;
+                    } else if (!branchDisplay) {
+                        fullBranchText = 'Main Branch';
+                    }
+
+                    const branchTextEl = document.getElementById('reportBranchNameText');
+                    if (branchTextEl) branchTextEl.textContent = fullBranchText;
+
+                    const userTextEl = document.getElementById('reportHeaderUserName');
+                    if (userTextEl && data.admin_name) userTextEl.textContent = data.admin_name;
+
+                    document.title = `${fullBranchText} - Attendance Reports | QIntellect`;
+                }
+            }).catch(() => {});
+        }
+        loadReportBranchSettings();
+        checkReportHealth();
+        setInterval(checkReportHealth, 15000);
+    </script>
+
+    <!-- Professional Global Application Footer -->
+    <footer style="margin-top: 48px; padding: 24px 28px; border-top: 1px solid var(--card-border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; font-size: 0.88rem; color: var(--text-muted); max-width: 1440px; margin-left: auto; margin-right: auto;">
+        <div>&copy; 2026 QIntellect Technologies. All rights reserved.</div>
+        <div>Powered by <strong style="color: #f8fafc;">QIntellect Technologies</strong></div>
+    </footer>
+</body>
+</html>
