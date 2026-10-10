@@ -164,7 +164,7 @@
         align-items: center;
         gap: 11px;
         padding: 10px 12px;
-        color: #64748b;
+        color: #64748b !important;
         border-radius: 9px;
         font-weight: 600;
         font-size: 0.82em;
@@ -2542,6 +2542,121 @@
         border-color: #e2e8f0;
         color: #94a3b8;
       }
+
+      .ot-log-drag-scroller {
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        cursor: grab;
+        user-select: none;
+      }
+
+      .ot-log-drag-scroller::-webkit-scrollbar {
+        display: none;
+      }
+
+      .ot-log-drag-scroller.is-dragging {
+        cursor: grabbing;
+      }
+
+      table:not(.attendance-report-table):not(.attendance-report-detail-table) {
+        border-collapse: collapse;
+        color: #173042;
+        font-family: "Outfit", sans-serif !important;
+      }
+
+      table:not(.attendance-report-table):not(.attendance-report-detail-table) thead th {
+        background: #f8fafc !important;
+        border: 0 !important;
+        border-bottom: 1px solid #e2e8f0 !important;
+        color: #64748b;
+        font-family: "Outfit", sans-serif !important;
+        font-size: 0.74rem !important;
+        font-weight: 700 !important;
+        letter-spacing: 0.05em;
+        padding: 10px 12px !important;
+        text-transform: uppercase;
+        vertical-align: middle;
+        white-space: nowrap;
+      }
+
+      table:not(.attendance-report-table):not(.attendance-report-detail-table) tbody td {
+        background-color: #ffffff !important;
+        border: 0 !important;
+        border-bottom: 1px solid #edf1f5 !important;
+        font-family: "Outfit", sans-serif !important;
+        font-size: 0.82rem !important;
+        padding: 9px 12px !important;
+        vertical-align: middle;
+      }
+
+      table:not(.attendance-report-table):not(.attendance-report-detail-table) tbody tr:hover td {
+        background-color: #f8fbfe !important;
+      }
+
+      table:not(.attendance-report-table):not(.attendance-report-detail-table) tbody tr:last-child td {
+        border-bottom: 0 !important;
+      }
+
+      .staff-directory-filter-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+        padding: 14px 18px;
+      }
+
+      .staff-directory-search-wrap {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex: 1 1 620px;
+        min-width: 280px;
+        max-width: calc(100% - 292px);
+        padding: 8px 14px;
+        background: #ffffff;
+        border: 1px solid #cfe8f7;
+        border-radius: 10px;
+      }
+
+      .staff-directory-search-wrap input {
+        flex: 1;
+        min-width: 0;
+        width: 100%;
+        background: transparent;
+        border: none;
+        outline: none;
+        color: #173042;
+        font-size: 0.9em;
+      }
+
+      .staff-directory-dept-wrap {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: 0 0 280px;
+        min-width: 280px;
+      }
+
+      .staff-directory-dept-wrap label {
+        flex: 0 0 auto;
+        white-space: nowrap;
+      }
+
+      .staff-directory-dept-wrap select {
+        flex: 1;
+        width: 210px;
+        min-width: 0;
+      }
+
+      @media (max-width: 700px) {
+        .staff-directory-search-wrap,
+        .staff-directory-dept-wrap {
+          flex: 1 1 100%;
+          min-width: 0;
+          max-width: none;
+        }
+      }
     </style>
   </head>
   <body>
@@ -3924,7 +4039,7 @@ async function fetchMultiLiveDetections() {
         <!-- Detailed Master Attendance Records Table -->
         <div class="card p-0" style="background:#ffffff; border:1px solid #cfe8f7; border-radius:14px; overflow:hidden; box-shadow:0 8px 24px rgba(61,159,212,0.08);">
           <div class="log-table-wrapper">
-            <table class="log-table" style="width:100%; border-collapse:collapse;">
+            <table class="log-table attendance-report-table" style="width:100%; border-collapse:collapse;">
               <thead id="mainReportThead" style="background:#f2faff; border-bottom:1px solid #cfe8f7;">
                 <!-- Populated dynamically based on Single-Day vs Multi-Day -->
               </thead>
@@ -4005,7 +4120,7 @@ async function fetchMultiLiveDetections() {
               <i class="fa-solid fa-calendar-day" style="color:#0284c7;"></i> Daily Attendance Breakdown
             </h4>
             <div style="border:1px solid #e2e8f0; border-radius:10px; overflow:hidden;">
-              <table style="width:100%; border-collapse:collapse; font-size:0.83rem;">
+              <table class="attendance-report-detail-table" style="width:100%; border-collapse:collapse; font-size:0.83rem;">
                 <thead style="background:#f1f5f9; border-bottom:1px solid #cbd5e1; color:#475569; text-transform:uppercase; font-size:0.74rem;">
                   <tr>
                     <th style="padding:10px 14px; text-align:left;">Date</th>
@@ -4263,11 +4378,25 @@ async function fetchMultiLiveDetections() {
       <!-- Subtab 1: Leave Requests -->
       <div id="subtab-leave-requests">
         <div style="display:flex; gap:12px; margin-bottom:16px; flex-wrap:wrap; align-items:center;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <button id="leavePrevMonth" type="button" class="btn btn-outline-secondary" onclick="moveLeaveMonth(-1)" aria-label="Previous month" title="Previous month" style="width:40px; min-height:38px;"><i class="fa-solid fa-chevron-left"></i></button>
+            <label for="leaveMonthFilter" style="display:grid; gap:2px; font-size:0.76em; font-weight:700; color:#64748b; margin:0;">
+              LEAVE MONTH
+              <input id="leaveMonthFilter" type="month" class="form-control" onchange="onLeaveFilterChange()" style="width:160px; min-height:38px; font-size:1rem; font-weight:700; color:#173042;">
+            </label>
+            <button id="leaveNextMonth" type="button" class="btn btn-outline-secondary" onclick="moveLeaveMonth(1)" aria-label="Next month" title="Next month" style="width:40px; min-height:38px;"><i class="fa-solid fa-chevron-right"></i></button>
+            
+            <label for="leaveDateFilter" style="display:grid; gap:2px; font-size:0.76em; font-weight:700; color:#64748b; margin:0; margin-left:8px;">
+              SPECIFIC DATE
+              <input id="leaveDateFilter" type="date" class="form-control" onchange="onLeaveFilterChange()" style="width:160px; min-height:38px; font-size:1rem; font-weight:700; color:#173042;">
+            </label>
+          </div>
           <input type="search" id="leaveSearch" class="form-control" placeholder="Search employee name or ID..." oninput="onLeaveSearchInput()" style="max-width:260px;" />
           <select id="leaveStatusFilter" class="form-select" onchange="onLeaveFilterChange()" style="width:auto; min-width:140px;">
             <option value="all">All Statuses</option>
             <option value="pending">Pending</option>
             <option value="approved">Approved</option>
+            <option value="partially_approved">Partially Approved</option>
             <option value="rejected">Rejected</option>
           </select>
           <select id="leavePageSize" class="form-select" onchange="changeLeavePageSize(this.value)" style="width:auto; min-width:110px;">
@@ -4280,7 +4409,8 @@ async function fetchMultiLiveDetections() {
           <button class="btn btn-primary btn-sm ms-auto" onclick="openFileLeaveModal()"><i class="fa-solid fa-plus"></i> File Leave Request</button>
         </div>
 
-        <div class="log-table-wrapper" style="overflow-x:auto;">
+        <div class="card p-0" style="background:#ffffff; border:1px solid #cfe8f7; border-radius:14px; box-shadow:0 8px 24px rgba(61,159,212,0.08); overflow:hidden;">
+        <div class="log-table-wrapper" style="overflow-x:auto; border:0; border-radius:0; background:#ffffff;">
           <table class="log-table" style="width:100%; min-width:1120px; table-layout:fixed;">
             <colgroup>
               <col style="width:16%;">
@@ -4295,7 +4425,7 @@ async function fetchMultiLiveDetections() {
               <tr>
                 <th style="min-width:160px;">Employee</th>
                 <th style="min-width:110px;">Leave Type</th>
-                <th style="min-width:160px;">Dates &amp; Duration</th>
+                <th style="min-width:160px; font-family:'JetBrains Mono', monospace;">Dates &amp; Duration</th>
                 <th style="min-width:140px;">Pay Split</th>
                 <th style="min-width:160px;">Reason</th>
                 <th style="min-width:120px;">Status</th>
@@ -4309,13 +4439,10 @@ async function fetchMultiLiveDetections() {
         </div>
 
         <!-- Leave Requests Pagination -->
-        <div id="leavePaginationBar" style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; padding:8px 4px; font-size:0.86em; color:#475569; flex-wrap:wrap; gap:10px;">
-          <div id="leavePaginationInfo">Showing 0 of 0 requests</div>
-          <div style="display:flex; gap:6px; align-items:center;">
-            <button id="leavePrevBtn" class="btn btn-sm btn-outline-secondary" onclick="changeLeavePage(-1)" disabled><i class="fa-solid fa-chevron-left"></i> Previous</button>
-            <span id="leavePageIndicator" style="font-weight:700; padding:0 8px;">Page 1 of 1</span>
-            <button id="leaveNextBtn" class="btn btn-sm btn-outline-secondary" onclick="changeLeavePage(1)" disabled>Next <i class="fa-solid fa-chevron-right"></i></button>
-          </div>
+        <div id="leavePaginationBar" class="app-table-pagination">
+          <div id="leavePaginationInfo" class="app-page-info">Showing 0 of 0 requests</div>
+          <div id="leavePageControls" class="app-page-controls"></div>
+        </div>
         </div>
       </div>
 
@@ -4334,7 +4461,8 @@ async function fetchMultiLiveDetections() {
           </div>
           <button class="btn btn-outline-secondary btn-sm" onclick="loadLeaveBalances()"><i class="fa-solid fa-rotate"></i> Refresh</button>
         </div>
-        <div class="log-table-wrapper" style="overflow-x:auto;">
+        <div class="card p-0" style="background:#ffffff; border:1px solid #cfe8f7; border-radius:14px; box-shadow:0 6px 18px rgba(61,159,212,0.07); overflow:hidden;">
+        <div class="log-table-wrapper" style="overflow-x:auto; border:0; border-radius:0; background:#ffffff;">
           <table class="log-table" style="width:100%;">
             <thead style="background:#f2faff; border-bottom:1px solid #cfe8f7;">
               <tr>
@@ -4353,13 +4481,10 @@ async function fetchMultiLiveDetections() {
         </div>
 
         <!-- Leave Balances Pagination -->
-        <div id="leaveBalancePaginationBar" style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; padding:8px 4px; font-size:0.86em; color:#475569; flex-wrap:wrap; gap:10px;">
-          <div id="leaveBalancePaginationInfo">Showing 0 of 0 records</div>
-          <div style="display:flex; gap:6px; align-items:center;">
-            <button id="leaveBalancePrevBtn" class="btn btn-sm btn-outline-secondary" onclick="changeLeaveBalancePage(-1)" disabled><i class="fa-solid fa-chevron-left"></i> Previous</button>
-            <span id="leaveBalancePageIndicator" style="font-weight:700; padding:0 8px;">Page 1 of 1</span>
-            <button id="leaveBalanceNextBtn" class="btn btn-sm btn-outline-secondary" onclick="changeLeaveBalancePage(1)" disabled>Next <i class="fa-solid fa-chevron-right"></i></button>
-          </div>
+        <div id="leaveBalancePaginationBar" class="app-table-pagination">
+          <div id="leaveBalancePaginationInfo" class="app-page-info">Showing 0 of 0 records</div>
+          <div id="leaveBalancePageControls" class="app-page-controls"></div>
+        </div>
         </div>
       </div>
 
@@ -4490,28 +4615,36 @@ async function fetchMultiLiveDetections() {
           <button class="btn btn-outline-secondary btn-sm" onclick="resetOvertimeFilters()"><i class="fa-solid fa-arrow-rotate-left"></i> Reset</button>
         </div>
         <!-- Overtime Log Table -->
-        <div class="log-table-wrapper">
-          <table class="log-table" style="min-width:1150px;">
-            <thead style="background:#f5f3ff; border-bottom:1px solid #ddd6fe;">
-              <tr>
-                <th style="width:90px;">Employee ID</th>
-                <th>Employee</th>
-                <th>Department &amp; Designation</th>
-                <th style="width:110px;">Date</th>
-                <th class="text-center" style="width:90px;">Hours</th>
-                <th class="text-end" style="width:130px;">OT Rate</th>
-                <th class="text-end" style="width:140px;">Calculated Amount</th>
-                <th>Reason / Task</th>
-                <th style="width:110px;">Status</th>
-                <th style="width:110px;">Approved By</th>
-                <th style="width:130px;">Payroll Impact</th>
-                <th class="text-center" style="width:150px;">Actions</th>
-              </tr>
-            </thead>
+        <div class="card p-0 mb-4" style="background:#ffffff; border:1px solid #cfe8f7; border-radius:14px; box-shadow:0 6px 18px rgba(61,159,212,0.07); overflow:hidden;">
+          <div id="otLogTableScroller" class="table-responsive ot-log-drag-scroller">
+            <table class="directory-table" style="width:100%; margin:0; border-collapse:collapse; min-width:1150px;">
+              <thead>
+                <tr style="background:#f8fafc; border-bottom:1px solid #e2e8f0;">
+                  <th style="padding:10px 12px; color:#64748b; font-size:0.74rem; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; width:90px;"># ID</th>
+                  <th style="padding:10px 12px; color:#64748b; font-size:0.74rem; font-weight:700; letter-spacing:0.05em; text-transform:uppercase;">Employee</th>
+                  <th style="padding:10px 12px; color:#64748b; font-size:0.74rem; font-weight:700; letter-spacing:0.05em; text-transform:uppercase;">Dept &amp; Desig</th>
+                  <th style="padding:10px 12px; color:#64748b; font-size:0.74rem; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; width:110px;">Date</th>
+                  <th style="padding:10px 12px; color:#64748b; font-size:0.74rem; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; text-align:center; width:90px;">Hours</th>
+                  <th style="padding:10px 12px; color:#64748b; font-size:0.74rem; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; text-align:right; width:130px;">OT Rate</th>
+                  <th style="padding:10px 12px; color:#64748b; font-size:0.74rem; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; text-align:right; width:140px;">Amount</th>
+                  <th style="padding:10px 12px; color:#64748b; font-size:0.74rem; font-weight:700; letter-spacing:0.05em; text-transform:uppercase;">Reason / Task</th>
+                  <th style="padding:10px 12px; color:#64748b; font-size:0.74rem; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; width:110px;">Status</th>
+                  <th style="padding:10px 12px; color:#64748b; font-size:0.74rem; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; width:110px;">Approved By</th>
+                  <th style="padding:10px 12px; color:#64748b; font-size:0.74rem; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; width:130px;">Impact</th>
+                  <th style="padding:10px 12px; color:#64748b; font-size:0.74rem; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; text-align:center; width:150px;">Actions</th>
+                </tr>
+              </thead>
             <tbody id="overtimeTableBody">
               <tr><td colspan="12" class="text-center text-muted p-4">Loading overtime records...</td></tr>
             </tbody>
           </table>
+        </div>
+        <div id="otLogPagination" class="app-table-pagination" style="border-top:1px solid #cfe8f7; background:#f8fafc;">
+          <div id="otLogPageInfo" class="app-page-info">
+            Showing <strong id="otLogShowingStart">0</strong> to <strong id="otLogShowingEnd">0</strong> of <strong id="otLogShowingTotal">0</strong> employees
+          </div>
+          <div id="otLogPageControls" class="app-page-controls"></div>
+        </div>
         </div>
       </div>
 
@@ -4963,12 +5096,12 @@ async function fetchMultiLiveDetections() {
 
       <!-- Filter Controls Surface -->
       <div class="card p-0 mb-4" style="background:#ffffff; border:1px solid #cfe8f7; border-radius:14px; box-shadow:0 6px 18px rgba(61,159,212,0.07); overflow:hidden;">
-        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; padding:14px 18px; background:#f7fbff;">
-          <div style="display:flex; align-items:center; gap:10px; flex:1; min-width:280px; background:#ffffff; border:1px solid #cfe8f7; border-radius:10px; padding:8px 14px;">
+        <div class="staff-directory-filter-row" style="background:#f7fbff;">
+          <div class="staff-directory-search-wrap">
             <i class="fa-solid fa-magnifying-glass" style="color:#3d9fd4; font-size:0.9em;"></i>
-            <input type="text" id="tabStaffSearchInput" placeholder="Search by name, ID, position, CNIC, phone, department..." oninput="filterTabStaffTable()" style="background:transparent; border:none; outline:none; color:#173042; font-size:0.9em; width:100%;">
+            <input type="text" id="tabStaffSearchInput" placeholder="Search by name, ID, position, CNIC, phone, department..." oninput="filterTabStaffTable()">
           </div>
-          <div style="display:flex; align-items:center; gap:8px;">
+          <div class="staff-directory-dept-wrap">
             <label style="font-size:0.78em; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.5px;"><i class="fa-solid fa-building" style="color:#3d9fd4;"></i> Dept:</label>
             <select id="tabStaffDeptFilter" onchange="filterTabStaffTable()" style="background:#ffffff; border:1px solid #cfe8f7; color:#173042; padding:8px 14px; border-radius:10px; font-size:0.88em; outline:none; font-weight:600; cursor:pointer;">
               <option value="all">All Departments</option>
@@ -5127,16 +5260,12 @@ async function fetchMultiLiveDetections() {
         <form id="branchSettingsForm" onsubmit="event.preventDefault(); saveBranchSettings();">
           <div class="row g-3">
             <div class="col-md-6">
-              <label class="form-label font-weight-bold" style="color: #475569; font-size: 0.85em;">Branch / Store Name *</label>
-              <input type="text" id="settingBranchName" class="form-control" placeholder="e.g. Fork N Knives" required style="border-radius: 8px;">
+              <label class="form-label font-weight-bold" style="color: #475569; font-size: 0.85em;">Organization / Company Name *</label>
+              <input type="text" id="settingOrganizationName" class="form-control" placeholder="e.g. QIntellect Technologies" required style="border-radius: 8px;">
             </div>
             <div class="col-md-6">
               <label class="form-label font-weight-bold" style="color: #475569; font-size: 0.85em;">City *</label>
               <input type="text" id="settingCity" class="form-control" placeholder="e.g. New York" required style="border-radius: 8px;">
-            </div>
-            <div class="col-md-6">
-              <label class="form-label font-weight-bold" style="color: #475569; font-size: 0.85em;">Company / Organization Name</label>
-              <input type="text" id="settingCompanyName" class="form-control" placeholder="e.g. QIntellect AI" style="border-radius: 8px;">
             </div>
             <div class="col-md-6">
               <label class="form-label font-weight-bold" style="color: #475569; font-size: 0.85em;">Contact Phone</label>
@@ -5149,10 +5278,6 @@ async function fetchMultiLiveDetections() {
             <div class="col-md-6">
               <label class="form-label font-weight-bold" style="color: #475569; font-size: 0.85em;">Official Email</label>
               <input type="email" id="settingEmail" class="form-control" placeholder="e.g. info@forknknives.com" style="border-radius: 8px;">
-            </div>
-            <div class="col-md-6">
-              <label class="form-label font-weight-bold" style="color: #475569; font-size: 0.85em;">Physical Address</label>
-              <input type="text" id="settingAddress" class="form-control" placeholder="e.g. 100 Main Street, Suite 400" style="border-radius: 8px;">
             </div>
           </div>
 
@@ -5169,7 +5294,7 @@ async function fetchMultiLiveDetections() {
 
     <!-- TAB 2: DEPARTMENT MANAGEMENT -->
     <div id="depts-tab" class="settings-sub-tab" style="display: none;">
-      <div class="card p-4 shadow-sm" style="background: #ffffff; border: 1px solid #cfe8f7; border-radius: 16px;">
+      <div style="margin-bottom:24px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; flex-wrap: wrap; gap: 12px;">
           <div>
             <h3 style="font-size: 1.15em; font-weight: 800; color: #173042; margin: 0;">
@@ -5182,8 +5307,9 @@ async function fetchMultiLiveDetections() {
           </button>
         </div>
 
-        <div class="log-table-wrapper">
-          <table class="log-table" style="width:100%; border-collapse:collapse;">
+        <div class="card p-0" style="background:#ffffff; border:1px solid #cfe8f7; border-radius:14px; box-shadow:0 6px 18px rgba(61,159,212,0.07); overflow:hidden;">
+        <div class="table-responsive">
+          <table class="directory-table" style="width:100%; margin:0; border-collapse:collapse;">
             <thead style="background:#f2faff; border-bottom:1px solid #cfe8f7;">
               <tr>
                 <th># ID</th>
@@ -5201,12 +5327,13 @@ async function fetchMultiLiveDetections() {
             </tbody>
           </table>
         </div>
+        </div>
       </div>
     </div>
 
     <!-- TAB 3: DESIGNATION MANAGEMENT -->
     <div id="desigs-tab" class="settings-sub-tab" style="display: none;">
-      <div class="card p-4 shadow-sm" style="background: #ffffff; border: 1px solid #cfe8f7; border-radius: 16px;">
+      <div style="margin-bottom:24px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; flex-wrap: wrap; gap: 12px;">
           <div>
             <h3 style="font-size: 1.15em; font-weight: 800; color: #173042; margin: 0;">
@@ -5224,8 +5351,9 @@ async function fetchMultiLiveDetections() {
           </div>
         </div>
 
-        <div class="log-table-wrapper">
-          <table class="log-table" style="width:100%; border-collapse:collapse;">
+        <div class="card p-0" style="background:#ffffff; border:1px solid #cfe8f7; border-radius:14px; box-shadow:0 6px 18px rgba(61,159,212,0.07); overflow:hidden;">
+        <div class="table-responsive">
+          <table class="directory-table" style="width:100%; margin:0; border-collapse:collapse;">
             <thead style="background:#f2faff; border-bottom:1px solid #cfe8f7;">
               <tr>
                 <th># ID</th>
@@ -5240,6 +5368,7 @@ async function fetchMultiLiveDetections() {
               <!-- Dynamically populated -->
             </tbody>
           </table>
+        </div>
         </div>
       </div>
     </div>
@@ -5294,18 +5423,139 @@ async function fetchMultiLiveDetections() {
 
         <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap; padding:12px 14px; margin-bottom:16px; background:#f8fafc; border:1px solid #dbe5ec; border-radius:8px;">
           <div style="flex:1; min-width:240px;">
-            <div style="font-weight:700; color:#173042;">Half-Leave Quota Policy</div>
-            <div id="halfLeaveQuotaDescription" style="font-size:0.82em; color:#64748b;">Choose whether leave categories control half-leave rules, or apply an organization-wide monthly cap or conversion.</div>
+            <div style="font-weight:700; color:#173042;">Half Leave Setup</div>
+            <div id="halfLeaveQuotaDescription" style="font-size:0.82em; color:#64748b;">How would you like to handle half leaves? You can use each leave type's own rules, set a limit for the whole month, or convert them into full days off.</div>
           </div>
           <select id="halfLeaveQuotaMode" class="form-select" style="max-width:280px;" onchange="updateHalfLeaveQuotaModeUI(); savePayrollSettings(document.getElementById('deductUnpaidLeaveToggle').checked)">
             <option value="category">Use each leave category's policy</option>
-            <option value="monthly_cap">Limit half-leave occurrences per month</option>
-            <option value="monthly_convert">Convert monthly occurrences to quota days</option>
+            <option value="monthly_cap">Limit maximum half-leaves per month</option>
+            <option value="monthly_convert">Deduct a full leave day for every X half-leaves</option>
           </select>
           <label for="halfLeavesPerQuotaDay" style="display:flex; align-items:center; gap:8px; margin:0; font-size:0.86em; font-weight:700; color:#475569;">
             Occurrences per month
             <input id="halfLeavesPerQuotaDay" class="form-control" type="number" min="1" step="1" value="2" style="width:90px;" oninput="updateHalfLeaveQuotaModeUI()" onchange="savePayrollSettings(document.getElementById('deductUnpaidLeaveToggle').checked)">
           </label>
+
+          <!-- Department/Employee Specific Half Leave Rules -->
+          <div style="flex-basis: 100%; margin-top:16px; padding-top:12px; border-top:1px solid #dbe5ec;">
+            <div style="font-weight:700; color:#173042; margin-bottom:8px;">Specific Half Leave Rules</div>
+            <div style="font-size:0.82em; color:#64748b; margin-bottom:10px;">Set specific half-leave occurrences for certain departments or employees.</div>
+            <form id="halfLeaveSpecificRuleForm" class="payroll-rule-form" onsubmit="event.preventDefault(); saveHalfLeaveSpecificRule();">
+              <label class="payroll-rule-field">
+                Applies to
+                <select class="form-select" id="halfLeaveRuleScope" onchange="updateHalfLeaveRuleScopeOptions()">
+                  <option value="department">Department</option>
+                  <option value="employee">Employee</option>
+                </select>
+              </label>
+              <label class="payroll-rule-field">
+                Target
+                <select class="form-select" id="halfLeaveRuleTarget">
+                  <option value="">Select target...</option>
+                </select>
+              </label>
+              <label class="payroll-rule-field">
+                Occurrences / Month
+                <input class="form-control" type="number" min="1" step="1" id="halfLeaveRuleValue">
+              </label>
+              <div class="payroll-rule-actions">
+                <button type="submit" class="btn btn-primary btn-sm" style="min-height:38px; background:#3d9fd4; border:none; font-weight:700;">
+                  <i class="fa-solid fa-plus me-1"></i> Add Rule
+                </button>
+              </div>
+            </form>
+            <div class="log-table-wrapper" style="margin-top: 10px;">
+              <table class="log-table" style="width:100%; border-collapse:collapse;">
+                <thead style="background:#f2faff; border-bottom:1px solid #cfe8f7;">
+                  <tr>
+                    <th>Scope</th>
+                    <th>Target</th>
+                    <th>Rule</th>
+                    <th style="text-align:right;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="halfLeaveSpecificRulesTableBody">
+                  <tr><td colspan="4" class="text-center text-muted p-4">No specific rules found.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; padding:12px 14px; margin-bottom:16px; background:#f8fafc; border:1px solid #dbe5ec; border-radius:8px;">
+          <div style="flex:1; min-width:260px;">
+            <div style="font-weight:700; color:#173042;">Maximum Overtime</div>
+            <div style="font-size:0.82em; color:#64748b;">Set a maximum OT amount for each employee. OT over the limit stays pending so an admin can approve or reject it. Set the limit to 0 to turn it off.</div>
+            <div id="overtimeLimitSettingsMessage" role="status" style="font-size:0.8em; color:#64748b; margin-top:4px;">Loading overtime limit...</div>
+          </div>
+          <label for="overtimeMaxHours" style="display:flex; align-items:center; gap:8px; margin:0; font-size:0.86em; font-weight:700; color:#475569;">
+            Maximum hours
+            <input id="overtimeMaxHours" class="form-control" type="number" min="0" max="744" step="0.25" value="0" style="width:110px;">
+          </label>
+          <label for="overtimeMaxPeriod" style="display:flex; align-items:center; gap:8px; margin:0; font-size:0.86em; font-weight:700; color:#475569;">
+            Limit applies
+            <select id="overtimeMaxPeriod" class="form-select" style="width:190px;">
+              <option value="per_entry">Each OT entry</option>
+              <option value="day">Per day</option>
+              <option value="week">Per week</option>
+              <option value="month">Per calendar month</option>
+            </select>
+          </label>
+          <button id="saveOvertimeLimitButton" type="button" class="btn btn-primary btn-sm" onclick="saveOvertimeLimitSettings()" style="background:#3d9fd4; border:none; font-weight:700;">Save OT Limit</button>
+
+          <!-- Department/Employee Specific Overtime Limit Rules -->
+          <div style="width:100%; margin-top:16px; border-top:1px solid #dbe5ec; padding-top:12px;">
+            <div style="font-weight:700; color:#173042; margin-bottom:8px;">Specific Maximum Overtime Limits</div>
+            <div style="font-size:0.82em; color:#64748b; margin-bottom:10px;">Set specific overtime limits for certain departments or employees.</div>
+            <form id="overtimeLimitSpecificRuleForm" class="payroll-rule-form" onsubmit="event.preventDefault(); saveSpecificOvertimeLimitRule();">
+              <label class="payroll-rule-field">
+                Applies to
+                <select class="form-select" id="overtimeLimitRuleScope" onchange="updateOvertimeLimitRuleScopeOptions()">
+                  <option value="department">Department</option>
+                  <option value="employee">Employee</option>
+                </select>
+              </label>
+              <label class="payroll-rule-field">
+                Target
+                <select class="form-select" id="overtimeLimitRuleTarget">
+                  <option value="">Select target...</option>
+                </select>
+              </label>
+              <label class="payroll-rule-field" style="max-width:120px;">
+                Max hours
+                <input class="form-control" type="number" min="0" max="744" step="0.25" id="overtimeLimitRuleHours" value="0">
+              </label>
+              <label class="payroll-rule-field">
+                Limit applies
+                <select class="form-select" id="overtimeLimitRulePeriod">
+                  <option value="per_entry">Each OT entry</option>
+                  <option value="day">Per day</option>
+                  <option value="week">Per week</option>
+                  <option value="month">Per calendar month</option>
+                </select>
+              </label>
+              <div class="payroll-rule-actions">
+                <button type="submit" class="btn btn-primary btn-sm" style="min-height:38px; background:#3d9fd4; border:none; font-weight:700;">
+                  <i class="fa-solid fa-plus me-1"></i> Add Rule
+                </button>
+              </div>
+            </form>
+            <div class="log-table-wrapper" style="margin-top: 10px;">
+              <table class="log-table" style="width:100%; border-collapse:collapse;">
+                <thead style="background:#f2faff; border-bottom:1px solid #cfe8f7;">
+                  <tr>
+                    <th>Scope</th>
+                    <th>Target</th>
+                    <th>Limit</th>
+                    <th style="text-align:right;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="overtimeLimitSpecificRulesTableBody">
+                  <tr><td colspan="4" class="text-center text-muted p-4">No specific rules found.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
 
         <div style="padding:12px 14px; margin-bottom:16px; background:#f8fafc; border:1px solid #dbe5ec; border-radius:8px;">
@@ -5323,10 +5573,70 @@ async function fetchMultiLiveDetections() {
               <button type="button" class="btn btn-primary btn-sm" onclick="saveOvertimePremiumRule('non_working_day')" style="background:#3d9fd4; border:none; font-weight:700;">Save &amp; Activate</button>
             </div>
           </div>
+          <div style="margin-top:14px; padding-top:12px; border-top:1px solid #dbe5ec;">
+            <div style="font-weight:700; color:#173042;">Premium for a specific holiday</div>
+            <div style="font-size:0.82em; color:#64748b; margin:3px 0 10px;">Choose a holiday to give it a different OT premium. This overrides the public holiday premium above for that holiday and its recurring dates.</div>
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+              <select id="holidaySpecificOtSelect" class="form-select" onchange="updateHolidaySpecificOtPremiumInput()" style="width:auto; min-width:250px; max-width:100%;">
+                <option value="">Loading holidays...</option>
+              </select>
+              <label for="holidaySpecificOtPremiumPercent" style="display:flex; align-items:center; gap:7px; margin:0; font-size:0.86em; font-weight:700; color:#475569;">
+                Holiday premium (%)
+                <input id="holidaySpecificOtPremiumPercent" class="form-control" type="number" min="0" max="1000" step="0.01" placeholder="Default rate" style="width:125px;" disabled>
+              </label>
+              <button id="saveHolidaySpecificOtPremiumButton" type="button" class="btn btn-primary btn-sm" onclick="saveHolidaySpecificOtPremium()" style="background:#3d9fd4; border:none; font-weight:700;" disabled>Save Holiday Premium</button>
+            </div>
+            <div id="holidaySpecificOtPremiumMessage" role="status" style="font-size:0.8em; color:#64748b; margin-top:6px;"></div>
+          </div>
           <div style="margin-top:16px; border-top:1px solid #dbe5ec; padding-top:12px;">
             <div style="font-weight:700; color:#173042; margin-bottom:8px;">Current overtime rules</div>
             <div id="overtimePremiumRulesList" aria-live="polite" style="overflow-x:auto;">
               <div class="text-muted small">Loading overtime rules...</div>
+            </div>
+          </div>
+
+          <!-- Department/Employee Specific Overtime Rules -->
+          <div style="margin-top:16px; border-top:1px solid #dbe5ec; padding-top:12px;">
+            <div style="font-weight:700; color:#173042; margin-bottom:8px;">Specific Overtime Day Premiums</div>
+            <div style="font-size:0.82em; color:#64748b; margin-bottom:10px;">Set specific overtime day premiums for certain departments or employees.</div>
+            <form id="overtimeSpecificRuleForm" class="payroll-rule-form" onsubmit="event.preventDefault(); /* TODO */">
+              <label class="payroll-rule-field">
+                Applies to
+                <select class="form-select" id="overtimeRuleScope" onchange="updateOvertimeRuleScopeOptions()">
+                  <option value="department">Department</option>
+                  <option value="employee">Employee</option>
+                </select>
+              </label>
+              <label class="payroll-rule-field">
+                Target
+                <select class="form-select" id="overtimeRuleTarget">
+                  <option value="">Select target...</option>
+                </select>
+              </label>
+              <label class="payroll-rule-field">
+                Premium (%)
+                <input class="form-control" type="number" min="0" max="1000" step="0.01" id="overtimeRuleValue">
+              </label>
+              <div class="payroll-rule-actions">
+                <button type="submit" class="btn btn-primary btn-sm" style="min-height:38px; background:#3d9fd4; border:none; font-weight:700;">
+                  <i class="fa-solid fa-plus me-1"></i> Add Rule
+                </button>
+              </div>
+            </form>
+            <div class="log-table-wrapper" style="margin-top: 10px;">
+              <table class="log-table" style="width:100%; border-collapse:collapse;">
+                <thead style="background:#f2faff; border-bottom:1px solid #cfe8f7;">
+                  <tr>
+                    <th>Scope</th>
+                    <th>Target</th>
+                    <th>Premium</th>
+                    <th style="text-align:right;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="overtimeSpecificRulesTableBody">
+                  <tr><td colspan="4" class="text-center text-muted p-4">No specific rules found.</td></tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
@@ -5816,18 +6126,18 @@ async function fetchMultiLiveDetections() {
         <div class="mb-3">
           <label class="form-label" style="font-weight: 600; color: #173042;">Select Department</label>
           <select id="modalLeaveDeptSelect" class="form-select" onchange="filterLeaveEmployees()">
-            <option value="">All Departments</option>
+            <option value="">Select Department...</option>
           </select>
         </div>
         <div class="mb-3">
           <label class="form-label" style="font-weight: 600; color: #173042;">Select Employee *</label>
-          <select id="modalLeaveUserSelect" class="form-select" placeholder="Search employee...">
-            <option value="">Select Employee...</option>
+          <select id="modalLeaveUserSelect" class="form-select" placeholder="Search employee..." disabled>
+            <option value="">Select Department First...</option>
           </select>
         </div>
         <div class="mb-3">
           <label class="form-label" style="font-weight: 600; color: #173042;">Leave Category / Type *</label>
-          <select id="modalLeaveTypeSelect" class="form-select" onchange="validateModalLeaveQuota()">
+          <select id="modalLeaveTypeSelect" class="form-select" onchange="onLeaveTypeChange()">
             <option value="casual">Casual Leave (10 Days/Yr - Paid)</option>
             <option value="sick">Sick Leave (8 Days/Yr - Paid)</option>
             <option value="annual">Annual / Paid Leave (14 Days/Yr - Paid)</option>
@@ -5838,7 +6148,7 @@ async function fetchMultiLiveDetections() {
         </div>
         <div class="mb-3">
           <label for="modalLeaveDurationSelect" class="form-label" style="font-weight:600; color:#173042;">Leave Duration</label>
-          <select id="modalLeaveDurationSelect" class="form-select" onchange="onLeaveDurationChange()">
+          <select id="modalLeaveDurationSelect" class="form-select" onchange="onLeaveDurationChange()" disabled>
             <option value="full" selected>Full day</option>
             <option value="half">Half day</option>
           </select>
@@ -5931,9 +6241,15 @@ async function fetchMultiLiveDetections() {
       <div style="padding: 20px 24px;">
         <div id="addOvertimeMsg"></div>
         <div class="mb-3">
+          <label class="form-label" style="font-weight: 600; color: #173042;">Select Department *</label>
+          <select id="modalOtDeptSelect" class="form-select" onchange="filterOtEmployees()">
+            <option value="">Select Department...</option>
+          </select>
+        </div>
+        <div class="mb-3">
           <label class="form-label" style="font-weight: 600; color: #173042;">Select Employee *</label>
-          <select id="modalOtUserSelect" class="form-select" onchange="onOtEmployeeChange()">
-            <option value="">Select Employee...</option>
+          <select id="modalOtUserSelect" class="form-select" onchange="onOtEmployeeChange()" disabled>
+            <option value="">Select Department First...</option>
           </select>
         </div>
         <div class="row g-3 mb-3">
@@ -5994,72 +6310,73 @@ async function fetchMultiLiveDetections() {
         <div id="leaveTypeMsg"></div>
         <input type="hidden" id="modalLeaveTypeId" value="" />
         <div class="mb-3">
-          <label class="form-label" style="font-weight: 600; color: #173042;">Policy Name *</label>
-          <input type="text" id="modalLeaveTypeName" class="form-control" placeholder="e.g. Maternity Leave, Paternity Leave" />
+          <label class="form-label" style="font-weight: 600; color: #173042;">Leave Type Name *</label>
+          <input type="text" id="modalLeaveTypeName" class="form-control" placeholder="e.g. Sick Leave, Annual Leave" />
         </div>
         <div class="row g-3 mb-3">
           <div class="col-md-6">
-            <label class="form-label" style="font-weight: 600; color: #173042;">Allowance Quota *</label>
+            <label class="form-label" style="font-weight: 600; color: #173042;">Days Allowed *</label>
             <input type="number" min="0" step="0.5" id="modalLeaveTypeDays" class="form-control" value="12" />
-            <small class="form-text text-muted">Maximum paid scheduled leave days available per policy cycle.</small>
+            <small class="form-text text-muted">Maximum paid leave days for this period.</small>
           </div>
           <div class="col-md-6">
-            <label class="form-label" style="font-weight: 600; color: #173042;">Payment Type *</label>
+            <label class="form-label" style="font-weight: 600; color: #173042;">Is This Leave Paid? *</label>
             <select id="modalLeaveTypeIsPaid" class="form-select">
               <option value="1">Paid Leave</option>
-              <option value="0">Unpaid Leave (LWP)</option>
+              <option value="0">Unpaid Leave</option>
             </select>
           </div>
         </div>
         <div class="row g-3 mb-3">
           <div class="col-md-6">
-            <label class="form-label" style="font-weight: 600; color: #173042;">Policy Cycle *</label>
+            <label class="form-label" style="font-weight: 600; color: #173042;">Renewal Period *</label>
             <select id="modalLeaveTypePeriod" class="form-select" onchange="updateLeavePolicyDurationDefault()">
               <option value="yearly" selected>Year</option>
               <option value="monthly">Month</option>
             </select>
           </div>
           <div class="col-md-6">
-            <label class="form-label" style="font-weight: 600; color: #173042;">Duration (months) *</label>
+            <label class="form-label" style="font-weight: 600; color: #173042;">Renew After (Months) *</label>
             <input type="number" id="modalLeaveTypeMonths" class="form-control" min="1" max="12" step="1" value="12" />
-            <small class="form-text text-muted">Choose 1 to 12 months. The quota renews at the end of this cycle.</small>
+            <small class="form-text text-muted">Leave days reset after this many months.</small>
           </div>
         </div>
         <div class="mb-3">
-          <label class="form-label" style="font-weight: 600; color: #173042;">Description</label>
-          <input type="text" id="modalLeaveTypeDesc" class="form-control" placeholder="Optional notes regarding this leave category" />
+          <label class="form-label" style="font-weight: 600; color: #173042;">Notes</label>
+          <input type="text" id="modalLeaveTypeDesc" class="form-control" placeholder="Optional notes about this leave type" />
         </div>
         <div style="border-top:1px solid #e2e8f0; padding-top:14px;">
           <label for="modalLeaveTypeHalfEnabled" style="display:flex; align-items:center; gap:9px; margin:0; font-weight:700; color:#173042; cursor:pointer;">
             <input type="checkbox" id="modalLeaveTypeHalfEnabled" onchange="updateHalfLeavePolicyFields()" style="width:17px; height:17px; accent-color:#0d9488;">
-            Allow half-leave requests for this category
+            Allow half-day requests
           </label>
+          <small class="form-text text-muted" style="display:block; margin-top:5px;">Employees can request half a day instead of a full day.</small>
           <div id="halfLeavePolicyFields" style="display:none; margin-top:12px;">
             <div class="row g-3 mb-3">
               <div class="col-md-6">
-                <label class="form-label" for="modalHalfLeaveMode" style="font-weight:600; color:#173042;">Half-leave accounting</label>
+                <label class="form-label" for="modalHalfLeaveMode" style="font-weight:600; color:#173042;">Half-Leave Rule</label>
                 <select id="modalHalfLeaveMode" class="form-select" onchange="updateHalfLeavePolicyFields()">
-                  <option value="separate">Separate occurrence allowance</option>
-                  <option value="convert">Convert occurrences to a quota day</option>
+                  <option value="separate">Independent limit (e.g., 2 half-leaves/period)</option>
+                  <option value="convert">Deduct from full leave balance</option>
                 </select>
               </div>
               <div class="col-md-6">
-                <label class="form-label" for="modalHalfLeaveMonths" style="font-weight:600; color:#173042;">Reset cycle (months)</label>
+                <label class="form-label" for="modalHalfLeaveMonths" style="font-weight:600; color:#173042;">Reset Every (Months)</label>
                 <input type="number" id="modalHalfLeaveMonths" class="form-control" min="1" max="12" step="1" value="12" />
               </div>
             </div>
             <div id="halfLeaveSeparateFields" class="mb-3">
-              <label class="form-label" for="modalHalfLeaveAllowance" style="font-weight:600; color:#173042;">Maximum half-leave occurrences per cycle</label>
+              <label class="form-label" for="modalHalfLeaveAllowance" style="font-weight:600; color:#173042;">Half-Days Allowed Per Period</label>
               <input type="number" id="modalHalfLeaveAllowance" class="form-control" min="1" step="1" value="1" />
             </div>
             <div id="halfLeaveConvertFields" style="display:none;">
               <div class="row g-3">
                 <div class="col-md-6">
-                  <label class="form-label" for="modalHalfLeavesPerQuotaDay" style="font-weight:600; color:#173042;">Occurrences per quota day</label>
+                  <label class="form-label" for="modalHalfLeavesPerQuotaDay" style="font-weight:600; color:#173042;">Half-Days That Count as One Full Day</label>
                   <input type="number" id="modalHalfLeavesPerQuotaDay" class="form-control" min="1" step="1" value="2" />
                 </div>
                 <div class="col-md-6">
-                  <label class="form-label" for="modalHalfLeaveQuotaType" style="font-weight:600; color:#173042;">Charge quota category</label>
+                  <label class="form-label" for="modalHalfLeaveQuotaType" style="font-weight:600; color:#173042;">Take Days From</label>
                   <select id="modalHalfLeaveQuotaType" class="form-select"></select>
                 </div>
               </div>
@@ -6069,7 +6386,7 @@ async function fetchMultiLiveDetections() {
       </div>
       <div style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 14px 24px; display: flex; justify-content: flex-end; gap: 10px;">
         <button type="button" class="btn btn-secondary" onclick="closeLeaveTypeModal()">Cancel</button>
-        <button type="button" class="btn btn-primary" onclick="submitLeaveType()" style="background:#0d9488; border:none; font-weight:700;">Save Leave Category</button>
+        <button type="button" class="btn btn-primary" onclick="submitLeaveType()" style="background:#0d9488; border:none; font-weight:700;">Save Leave Type</button>
       </div>
     </div>
   </div>
@@ -11538,6 +11855,111 @@ async function fetchMultiLiveDetections() {
         const description = document.getElementById('halfLeaveQuotaDescription');
         if (count) count.disabled = mode === 'category';
         if (description) description.textContent = describeHalfLeaveQuotaMode(mode, count?.value || 2);
+        
+        const countLabel = count ? count.closest('label') : null;
+        if (countLabel && count) {
+          if (mode === 'monthly_cap') {
+            countLabel.childNodes[0].nodeValue = 'Maximum half-leaves allowed ';
+          } else if (mode === 'monthly_convert') {
+            countLabel.childNodes[0].nodeValue = 'Half-leaves per 1 deducted day ';
+          } else {
+            countLabel.childNodes[0].nodeValue = 'Occurrences per month ';
+          }
+        }
+      }
+
+      let _halfLeaveScopeOptionsCache = null;
+      async function updateHalfLeaveRuleScopeOptions() {
+        const scope = document.getElementById('halfLeaveRuleScope').value;
+        const targetSelect = document.getElementById('halfLeaveRuleTarget');
+        targetSelect.innerHTML = '<option value="">Select target...</option>';
+        if (!_halfLeaveScopeOptionsCache) {
+          try {
+            const [deptRes, userRes] = await Promise.all([
+              fetch('/api/departments'),
+              fetch('/api/users')
+            ]);
+            if (deptRes.ok && userRes.ok) {
+              const deps = await deptRes.json();
+              const usrs = await userRes.json();
+              _halfLeaveScopeOptionsCache = { departments: deps, employees: usrs };
+            }
+          } catch (e) { console.error('Failed to load scope options', e); }
+        }
+        if (!_halfLeaveScopeOptionsCache) return;
+        const options = scope === 'department' ? _halfLeaveScopeOptionsCache.departments : _halfLeaveScopeOptionsCache.employees;
+        options.forEach(opt => {
+          const el = document.createElement('option');
+          el.value = opt.id;
+          el.textContent = opt.name + (opt.department ? ` (${opt.department})` : '');
+          targetSelect.appendChild(el);
+        });
+      }
+
+      async function loadHalfLeaveSpecificRules() {
+        const tbody = document.getElementById('halfLeaveSpecificRulesTableBody');
+        try {
+          const res = await fetch('/api/payroll-settings/scoped-rules/half-leave');
+          if (!res.ok) throw new Error('Failed to fetch');
+          const rules = await res.json();
+          if (rules.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted p-4">No specific rules found.</td></tr>';
+            return;
+          }
+          tbody.innerHTML = rules.map(rule => {
+            const targetName = rule.scope_type === 'department' ? rule.department_name : rule.employee_name;
+            const modeLabel = rule.half_leave_quota_mode === 'monthly_cap' ? 'Cap: ' : (rule.half_leave_quota_mode === 'monthly_convert' ? 'Convert: ' : 'Category: ');
+            return `<tr>
+              <td><span class="badge bg-secondary">${rule.scope_type}</span></td>
+              <td>${escapeHtml(targetName || '')}</td>
+              <td>${modeLabel} ${rule.half_leaves_per_quota_day} half-leaves</td>
+              <td class="text-end"><button class="btn btn-sm btn-outline-danger" onclick="deleteHalfLeaveSpecificRule(${rule.id})"><i class="fa-solid fa-trash"></i></button></td>
+            </tr>`;
+          }).join('');
+        } catch (e) {
+          tbody.innerHTML = '<tr><td colspan="4" class="text-center text-danger p-4">Failed to load rules.</td></tr>';
+        }
+      }
+
+      async function saveHalfLeaveSpecificRule() {
+        const scope = document.getElementById('halfLeaveRuleScope').value;
+        const target = document.getElementById('halfLeaveRuleTarget').value;
+        const count = document.getElementById('halfLeaveRuleValue').value;
+        const mode = document.getElementById('halfLeaveQuotaMode')?.value || 'category';
+        if (!target || !count) return showToast('Please select a target and enter a value.', 'warning');
+        try {
+          const res = await fetch('/api/payroll-settings/scoped-rules/half-leave', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ scope_type: scope, scope_id: target, half_leave_quota_mode: mode, half_leaves_per_quota_day: count })
+          });
+          const data = await res.json();
+          if (data.success) {
+            showToast('Rule saved successfully.', 'success');
+            document.getElementById('halfLeaveRuleValue').value = '';
+            loadHalfLeaveSpecificRules();
+          } else {
+            showToast(data.error || 'Failed to save rule.', 'danger');
+          }
+        } catch (e) {
+          showToast('Error saving rule.', 'danger');
+        }
+      }
+
+      async function deleteHalfLeaveSpecificRule(id) {
+        if (!confirm('Delete this specific rule?')) return;
+        try {
+          const res = await fetch(`/api/payroll-settings/scoped-rules/half-leave/${id}`, { method: 'DELETE' });
+          const data = await res.json();
+          if (data.success) {
+            showToast('Rule deleted.', 'success');
+            loadHalfLeaveSpecificRules();
+          } else {
+            showToast(data.error || 'Failed to delete.', 'danger');
+          }
+        } catch (e) {
+          showToast('Error deleting rule.', 'danger');
+        }
       }
 
       async function loadPayrollSettings() {
@@ -11547,8 +11969,13 @@ async function fetchMultiLiveDetections() {
         const conversionCount = document.getElementById('halfLeavesPerQuotaDay');
         const holidayPremium = document.getElementById('holidayOtPremiumPercent');
         const nonWorkingPremium = document.getElementById('nonWorkingDayOtPremiumPercent');
+        const overtimeMaxHours = document.getElementById('overtimeMaxHours');
+        const overtimeMaxPeriod = document.getElementById('overtimeMaxPeriod');
+        const overtimeLimitMessage = document.getElementById('overtimeLimitSettingsMessage');
         if (!toggle) return;
         toggle.disabled = true;
+        loadHalfLeaveSpecificRules();
+        updateHalfLeaveRuleScopeOptions();
         try {
           const response = await fetch(`${API_BASE}/settings/payroll`, { cache: 'no-store' });
           const settings = await response.json();
@@ -11568,12 +11995,22 @@ async function fetchMultiLiveDetections() {
             nonWorkingPremium.value = settings.non_working_day_ot_premium_percent ?? 0;
             nonWorkingPremium.dataset.saved = nonWorkingPremium.value;
           }
+          if (overtimeMaxHours) overtimeMaxHours.value = settings.overtime_max_hours ?? 0;
+          if (overtimeMaxPeriod) overtimeMaxPeriod.value = settings.overtime_max_period || 'day';
+          if (overtimeLimitMessage) {
+            const maxHours = Number(settings.overtime_max_hours) || 0;
+            overtimeLimitMessage.textContent = maxHours > 0
+              ? `Current limit: ${maxHours} hours ${settings.overtime_max_period === 'per_entry' ? 'per OT entry' : `per ${settings.overtime_max_period || 'day'}`}.`
+              : 'No OT hour limit is active.';
+          }
           if (message) {
             const unpaidPolicy = toggle.checked ? 'Unpaid days are deducted from payroll.' : 'Unpaid days are not deducted from payroll.';
             const halfLeavePolicy = describeHalfLeaveQuotaMode(quotaMode?.value || 'category', conversionCount?.value || 2);
             message.textContent = `${unpaidPolicy} ${halfLeavePolicy}`;
           }
           await loadOvertimePremiumRules();
+          await loadSpecificOvertimeLimitRules();
+          updateOvertimeLimitRuleScopeOptions();
         } catch (error) {
           if (message) message.textContent = error.message;
         } finally {
@@ -11581,22 +12018,102 @@ async function fetchMultiLiveDetections() {
         }
       }
 
+      async function saveOvertimeLimitSettings() {
+        const hoursInput = document.getElementById('overtimeMaxHours');
+        const periodInput = document.getElementById('overtimeMaxPeriod');
+        const message = document.getElementById('overtimeLimitSettingsMessage');
+        const button = document.getElementById('saveOvertimeLimitButton');
+        const maxHours = Number(hoursInput?.value);
+        const period = periodInput?.value || 'day';
+        if (!Number.isFinite(maxHours) || maxHours < 0 || maxHours > 744) {
+          showAppToast('Enter a maximum from 0 to 744 hours.', 'error');
+          return;
+        }
+
+        if (button) button.disabled = true;
+        try {
+          const response = await fetch(`${API_BASE}/settings/payroll/overtime-limit`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ overtime_max_hours: maxHours, overtime_max_period: period })
+          });
+          const result = await response.json();
+          if (!response.ok || !result.success) throw new Error(result.error || 'Failed to save OT limit');
+          const settings = result.settings || {};
+          if (hoursInput) hoursInput.value = settings.overtime_max_hours ?? maxHours;
+          if (periodInput) periodInput.value = settings.overtime_max_period || period;
+          if (message) {
+            const savedHours = Number(settings.overtime_max_hours ?? maxHours) || 0;
+            const savedPeriod = settings.overtime_max_period || period;
+            message.textContent = savedHours > 0
+              ? `Current limit: ${savedHours} hours ${savedPeriod === 'per_entry' ? 'per OT entry' : `per ${savedPeriod}`}. OT above this limit requires admin review.`
+              : 'No OT hour limit is active.';
+          }
+          showAppToast(result.message || 'OT limit saved.', 'success');
+        } catch (error) {
+          showAppToast(error.message || 'Failed to save OT limit.', 'error');
+        } finally {
+          if (button) button.disabled = false;
+        }
+      }
+
       async function loadOvertimePremiumRules() {
         const container = document.getElementById('overtimePremiumRulesList');
         if (!container) return;
         try {
-          const response = await fetch(`${API_BASE}/settings/payroll/overtime-rules`, { cache: 'no-store' });
+          const [response, holidaysResponse, holidayRulesResponse] = await Promise.all([
+            fetch(`${API_BASE}/settings/payroll/overtime-rules`, { cache: 'no-store' }),
+            fetch(`${API_BASE}/holidays`, { cache: 'no-store' }),
+            fetch(`${API_BASE}/settings/payroll/overtime-holiday-rules`, { cache: 'no-store' })
+          ]);
           const rules = await response.json();
+          const holidays = await holidaysResponse.json();
+          const holidayRules = await holidayRulesResponse.json();
           if (!response.ok) throw new Error(rules.error || 'Failed to load overtime rules');
+          if (!holidaysResponse.ok) throw new Error(holidays.error || 'Failed to load company holidays');
+          if (!holidayRulesResponse.ok) throw new Error(holidayRules.error || 'Failed to load holiday overtime premiums');
+          window._overtimeHolidays = Array.isArray(holidays) ? holidays : [];
+          window._overtimeHolidayPremiumRules = Array.isArray(holidayRules) ? holidayRules : [];
+
+          const holidaySelect = document.getElementById('holidaySpecificOtSelect');
+          if (holidaySelect) {
+            const previousHolidayId = holidaySelect.value;
+            const holidays = window._overtimeHolidays;
+            holidaySelect.innerHTML = '<option value="">Select a holiday...</option>' + holidays.map(holiday => {
+              const range = holiday.end_date && holiday.end_date !== holiday.holiday_date
+                ? `${holiday.holiday_date} to ${holiday.end_date}`
+                : holiday.holiday_date;
+              const recurring = Number(holiday.is_recurring) ? ' · repeats yearly' : '';
+              return `<option value="${Number(holiday.id)}">${payrollEscape(holiday.name)} · ${payrollEscape(range)}${recurring}</option>`;
+            }).join('');
+            if (holidays.some(holiday => String(holiday.id) === previousHolidayId)) holidaySelect.value = previousHolidayId;
+          }
+
           const holidayInput = document.getElementById('holidayOtPremiumPercent');
           const nonWorkingInput = document.getElementById('nonWorkingDayOtPremiumPercent');
           const holidayRule = rules.find(rule => rule.day_type === 'holiday');
           const nonWorkingRule = rules.find(rule => rule.day_type === 'non_working_day');
           if (holidayInput && holidayRule) holidayInput.value = holidayRule.premium_percent;
           if (nonWorkingInput && nonWorkingRule) nonWorkingInput.value = nonWorkingRule.premium_percent;
-          const configuredRules = rules.filter(rule => rule.active || Number(rule.premium_percent) > 0);
+          updateHolidaySpecificOtPremiumInput();
+          const configuredRules = [
+            ...rules.filter(rule => rule.active || Number(rule.premium_percent) > 0),
+            ...window._overtimeHolidayPremiumRules.map(rule => {
+              const holiday = window._overtimeHolidays.find(item => Number(item.id) === Number(rule.id));
+              const dateRange = holiday?.end_date && holiday.end_date !== holiday.holiday_date
+                ? `${holiday.holiday_date} to ${holiday.end_date}`
+                : holiday?.holiday_date || '';
+              return {
+                ...rule,
+                day_type: 'holiday_custom',
+                holiday_id: Number(rule.id),
+                label: `${rule.name}${dateRange ? ` · ${dateRange}` : ''}${Number(rule.is_recurring) ? ' · repeats yearly' : ''}`,
+                active: true
+              };
+            })
+          ];
           if (!configuredRules.length) {
-            container.innerHTML = '<div class="text-muted small">No saved overtime rules. Save and activate a premium above to add one.</div>';
+            container.innerHTML = '<div class="text-muted small">No saved overtime rules or holiday-specific premiums.</div>';
             return;
           }
           container.innerHTML = `
@@ -11610,20 +12127,199 @@ async function fetchMultiLiveDetections() {
                   : '<span class="badge bg-secondary-subtle text-secondary">Inactive</span>';
                 const toggleLabel = rule.active ? 'Deactivate' : 'Activate';
                 const toggleIcon = rule.active ? 'fa-pause' : 'fa-play';
+                const isHolidayOverride = rule.day_type === 'holiday_custom';
                 return `<tr>
                   <td style="font-weight:700; color:#334155;">${payrollEscape(rule.label)}</td>
                   <td class="text-end">+${premium.toFixed(2).replace(/\.00$/, '')}%</td>
                   <td>${factor}x regular OT</td>
-                  <td>${status}</td>
+                  <td>${isHolidayOverride ? '<span class="badge bg-info-subtle text-info">Custom holiday rate</span>' : status}</td>
                   <td class="text-end" style="white-space:nowrap;">
-                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setOvertimePremiumRuleActive('${rule.day_type}', ${!rule.active})"><i class="fa-solid ${toggleIcon}"></i> ${toggleLabel}</button>
-                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeOvertimePremiumRule('${rule.day_type}')" title="Remove rule"><i class="fa-solid fa-trash"></i></button>
+                    ${isHolidayOverride
+                      ? `<button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearHolidaySpecificOtPremium(${rule.holiday_id})">Use default</button>`
+                      : `<button type="button" class="btn btn-sm btn-outline-secondary" onclick="setOvertimePremiumRuleActive('${rule.day_type}', ${!rule.active})"><i class="fa-solid ${toggleIcon}"></i> ${toggleLabel}</button>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeOvertimePremiumRule('${rule.day_type}')" title="Remove rule"><i class="fa-solid fa-trash"></i></button>`}
                   </td>
                 </tr>`;
               }).join('')}</tbody>
             </table>`;
         } catch (error) {
           container.innerHTML = `<div class="text-danger small">${payrollEscape(error.message)}</div>`;
+        }
+      }
+
+      function updateHolidaySpecificOtPremiumInput() {
+        const holidaySelect = document.getElementById('holidaySpecificOtSelect');
+        const premiumInput = document.getElementById('holidaySpecificOtPremiumPercent');
+        const saveButton = document.getElementById('saveHolidaySpecificOtPremiumButton');
+        const message = document.getElementById('holidaySpecificOtPremiumMessage');
+        if (!holidaySelect || !premiumInput || !saveButton) return;
+        const holidayId = holidaySelect.value;
+        const holiday = (window._overtimeHolidays || []).find(item => String(item.id) === holidayId);
+        const override = (window._overtimeHolidayPremiumRules || []).find(item => String(item.id) === holidayId);
+        premiumInput.disabled = !holiday;
+        saveButton.disabled = !holiday;
+        premiumInput.value = override ? override.overtime_premium_percent : '';
+        const fallbackPremium = document.getElementById('holidayOtPremiumPercent')?.value || 0;
+        premiumInput.placeholder = `Default ${fallbackPremium}%`;
+        if (message) {
+          message.textContent = !holiday
+            ? ''
+            : override
+              ? `Custom premium saved: ${override.overtime_premium_percent}%. Clear the override below to use the default ${fallbackPremium}% rate.`
+              : `Currently using the default public holiday premium (${fallbackPremium}%).`;
+        }
+      }
+
+      async function saveHolidaySpecificOtPremium() {
+        const holidaySelect = document.getElementById('holidaySpecificOtSelect');
+        const premiumInput = document.getElementById('holidaySpecificOtPremiumPercent');
+        const holidayId = Number(holidaySelect?.value);
+        const premium = Number(premiumInput?.value);
+        if (!Number.isInteger(holidayId) || holidayId <= 0) {
+          showAppToast('Select a holiday first.', 'error');
+          return;
+        }
+        if (!Number.isFinite(premium) || premium < 0 || premium > 1000) {
+          showAppToast('Enter a holiday premium between 0 and 1000 percent.', 'error');
+          return;
+        }
+        try {
+          const response = await fetch(`${API_BASE}/settings/payroll/overtime-holiday-rules/${holidayId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ premium_percent: premium })
+          });
+          const result = await response.json();
+          if (!response.ok || !result.success) throw new Error(result.error || 'Failed to save holiday premium');
+          showAppToast(result.message || 'Holiday OT premium saved.', 'success');
+          await loadOvertimePremiumRules();
+          if (currentPayrollPreview && !currentPayrollPreview.is_finalized) {
+            await loadMonthlyPayroll(currentPayrollPreview.payroll_month, true);
+          }
+        } catch (error) {
+          showAppToast(error.message || 'Failed to save holiday premium.', 'error');
+        }
+      }
+
+      async function clearHolidaySpecificOtPremium(holidayId) {
+        try {
+          const response = await fetch(`${API_BASE}/settings/payroll/overtime-holiday-rules/${Number(holidayId)}`, { method: 'DELETE' });
+          const result = await response.json();
+          if (!response.ok || !result.success) throw new Error(result.error || 'Failed to reset holiday premium');
+          showAppToast(result.message || 'Holiday premium reset to default.', 'success');
+          await loadOvertimePremiumRules();
+          if (currentPayrollPreview && !currentPayrollPreview.is_finalized) {
+            await loadMonthlyPayroll(currentPayrollPreview.payroll_month, true);
+          }
+        } catch (error) {
+          showAppToast(error.message || 'Failed to reset holiday premium.', 'error');
+        }
+      }
+
+      function updateOvertimeLimitRuleScopeOptions() {
+        const scope = document.getElementById('overtimeLimitRuleScope').value;
+        const targetSelect = document.getElementById('overtimeLimitRuleTarget');
+        targetSelect.innerHTML = '<option value="">Loading...</option>';
+        if (scope === 'department') {
+          targetSelect.innerHTML = '<option value="">Select department...</option>' + 
+            (_allDepartments || []).map(d => `<option value="${d.id}">${escapeOtHtml(d.name)}</option>`).join('');
+        } else {
+          fetch(`${API_BASE}/users`)
+            .then(res => res.json())
+            .then(users => {
+              targetSelect.innerHTML = '<option value="">Select employee...</option>' + 
+                users.map(u => `<option value="${u.id}">${escapeOtHtml(u.name)} (${escapeOtHtml(u.email || u.department || 'Staff')})</option>`).join('');
+            })
+            .catch(() => { targetSelect.innerHTML = '<option value="">Error loading</option>'; });
+        }
+      }
+
+      async function saveSpecificOvertimeLimitRule() {
+        const scope = document.getElementById('overtimeLimitRuleScope').value;
+        const targetId = document.getElementById('overtimeLimitRuleTarget').value;
+        const maxHours = document.getElementById('overtimeLimitRuleHours').value;
+        const period = document.getElementById('overtimeLimitRulePeriod').value;
+        
+        if (!targetId || maxHours === '') {
+          showAppToast('Please select a target and specify max hours.', 'error');
+          return;
+        }
+        try {
+          const res = await fetch(`${API_BASE}/settings/payroll/scoped-rules/overtime-limit`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+              scope_type: scope,
+              scope_id: Number(targetId),
+              overtime_max_hours: Number(maxHours),
+              overtime_max_period: period
+            })
+          });
+          const data = await res.json();
+          if (!res.ok || !data.success) throw new Error(data.error || 'Failed to save scoped overtime limit rule');
+          showAppToast('Specific overtime limit saved successfully.', 'success');
+          loadSpecificOvertimeLimitRules();
+        } catch (e) {
+          showAppToast(e.message, 'error');
+        }
+      }
+
+      async function deleteSpecificOvertimeLimitRule(id) {
+        if (!confirm('Are you sure you want to remove this specific overtime limit?')) return;
+        try {
+          const res = await fetch(`${API_BASE}/settings/payroll/scoped-rules/overtime-limit/${id}`, {method: 'DELETE'});
+          const data = await res.json();
+          if (!res.ok || !data.success) throw new Error(data.error || 'Failed to delete rule');
+          showAppToast('Specific overtime limit removed.', 'success');
+          loadSpecificOvertimeLimitRules();
+        } catch (e) {
+          showAppToast(e.message, 'error');
+        }
+      }
+
+      async function loadSpecificOvertimeLimitRules() {
+        const tbody = document.getElementById('overtimeLimitSpecificRulesTableBody');
+        if (!tbody) return;
+        try {
+          const [rulesRes, deptsRes, usersRes] = await Promise.all([
+            fetch(`${API_BASE}/settings/payroll/scoped-rules/overtime-limit`),
+            fetch(`${API_BASE}/departments`),
+            fetch(`${API_BASE}/users`)
+          ]);
+          const rules = await rulesRes.json();
+          const depts = await deptsRes.json();
+          const users = await usersRes.json();
+          
+          if (!rules || rules.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted p-4">No specific rules found.</td></tr>';
+            return;
+          }
+          
+          tbody.innerHTML = rules.map(rule => {
+            let targetName = 'Unknown';
+            if (rule.scope_type === 'department') {
+              const dept = depts.find(d => String(d.id) === String(rule.scope_id));
+              targetName = dept ? dept.name : `Dept #${rule.scope_id}`;
+            } else {
+              const user = users.find(u => String(u.id) === String(rule.scope_id));
+              targetName = user ? user.name : `Employee #${rule.scope_id}`;
+            }
+            const limitDesc = `${rule.overtime_max_hours} hrs ${rule.overtime_max_period === 'per_entry' ? 'per OT entry' : 'per ' + (rule.overtime_max_period || 'day')}`;
+            return `
+              <tr>
+                <td><span class="badge bg-secondary-subtle text-secondary" style="text-transform:capitalize;">${escapeOtHtml(rule.scope_type)}</span></td>
+                <td style="font-weight:600;">${escapeOtHtml(targetName)}</td>
+                <td style="font-weight:700; color:#3d9fd4;">${escapeOtHtml(limitDesc)}</td>
+                <td class="text-end">
+                  <button class="btn btn-sm btn-outline-danger" onclick="deleteSpecificOvertimeLimitRule(${rule.id})" title="Delete this rule">
+                    <i class="fa-solid fa-trash"></i>
+                  </button>
+                </td>
+              </tr>
+            `;
+          }).join('');
+        } catch (e) {
+          tbody.innerHTML = `<tr><td colspan="4" class="text-center text-danger p-4">Error loading rules: ${e.message}</td></tr>`;
         }
       }
 
@@ -12399,13 +13095,11 @@ async function fetchMultiLiveDetections() {
           const resp = await fetch(`${API_BASE}/settings/branch`, { cache: 'no-store' });
           const data = await resp.json();
           if (data) {
-            if (document.getElementById('settingBranchName')) document.getElementById('settingBranchName').value = data.branch_name || '';
+            if (document.getElementById('settingOrganizationName')) document.getElementById('settingOrganizationName').value = data.branch_name || data.company_name || '';
             if (document.getElementById('settingCity')) document.getElementById('settingCity').value = data.city || '';
-            if (document.getElementById('settingCompanyName')) document.getElementById('settingCompanyName').value = data.company_name || '';
             if (document.getElementById('settingAdminName')) document.getElementById('settingAdminName').value = data.admin_name || 'Mr. Junaid';
             if (document.getElementById('settingPhone')) document.getElementById('settingPhone').value = data.phone || '';
             if (document.getElementById('settingEmail')) document.getElementById('settingEmail').value = data.email || '';
-            if (document.getElementById('settingAddress')) document.getElementById('settingAddress').value = data.address || '';
             updateDynamicBranchHeaders(data.branch_name, data.city, data.admin_name);
           }
         } catch (e) {
@@ -12472,16 +13166,15 @@ async function fetchMultiLiveDetections() {
 
       async function saveBranchSettings() {
         const msgEl = document.getElementById('branchSettingsMsg');
-        const branch_name = document.getElementById('settingBranchName')?.value.trim();
+        const branch_name = document.getElementById('settingOrganizationName')?.value.trim();
         const city = document.getElementById('settingCity')?.value.trim();
-        const company_name = document.getElementById('settingCompanyName')?.value.trim();
+        const company_name = branch_name;
         const admin_name = document.getElementById('settingAdminName')?.value.trim() || 'Mr. Junaid';
         const phone = document.getElementById('settingPhone')?.value.trim();
         const email = document.getElementById('settingEmail')?.value.trim();
-        const address = document.getElementById('settingAddress')?.value.trim();
 
         if (!branch_name || !city) {
-          if (msgEl) msgEl.innerHTML = '<div class="alert alert-danger p-2" style="font-size:0.85em;">Branch Name and City are required.</div>';
+          if (msgEl) msgEl.innerHTML = '<div class="alert alert-danger p-2" style="font-size:0.85em;">Organization / Company Name and City are required.</div>';
           return;
         }
 
@@ -12491,7 +13184,7 @@ async function fetchMultiLiveDetections() {
           const resp = await fetch(`${API_BASE}/settings/branch`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ branch_name, city, company_name, admin_name, phone, email, address })
+            body: JSON.stringify({ branch_name, city, company_name, admin_name, phone, email })
           });
           const res = await resp.json();
           if (resp.ok && res.success) {
@@ -13516,6 +14209,34 @@ async function fetchMultiLiveDetections() {
     let _leaveBalPage = 1;
     let _leaveBalPageSize = 25;
 
+    function renderLeavePaginationControls(containerId, currentPage, totalPages, onPageSelect) {
+      const controls = document.getElementById(containerId);
+      if (!controls) return;
+      controls.innerHTML = '';
+
+      const previous = document.createElement('button');
+      previous.className = 'app-page-btn';
+      previous.innerHTML = '<i class="fa-solid fa-chevron-left"></i> Previous';
+      previous.disabled = currentPage === 1;
+      previous.onclick = () => onPageSelect(currentPage - 1);
+      controls.appendChild(previous);
+
+      for (let page = 1; page <= totalPages; page++) {
+        const button = document.createElement('button');
+        button.className = `app-page-btn ${page === currentPage ? 'active' : ''}`;
+        button.textContent = page;
+        button.onclick = () => onPageSelect(page);
+        controls.appendChild(button);
+      }
+
+      const next = document.createElement('button');
+      next.className = 'app-page-btn';
+      next.innerHTML = 'Next <i class="fa-solid fa-chevron-right"></i>';
+      next.disabled = currentPage === totalPages;
+      next.onclick = () => onPageSelect(currentPage + 1);
+      controls.appendChild(next);
+    }
+
     function switchLeaveSubTab(subtab) {
       document.getElementById('subtab-leave-requests').style.display = subtab === 'requests' ? 'block' : 'none';
       document.getElementById('subtab-leave-balances').style.display = subtab === 'balances' ? 'block' : 'none';
@@ -13561,6 +14282,11 @@ async function fetchMultiLiveDetections() {
     async function loadLeaveRequests() {
       const tbody = document.getElementById('leaveRequestsTableBody');
       if (!tbody) return;
+      const monthInput = document.getElementById('leaveMonthFilter');
+      if (monthInput && !monthInput.value) {
+        const d = new Date();
+        monthInput.value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      }
       tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted p-4"><i class="fa-solid fa-spinner fa-spin"></i> Loading leave requests...</td></tr>';
       try {
         const res = await fetch('/api/leaves');
@@ -13573,11 +14299,25 @@ async function fetchMultiLiveDetections() {
       }
     }
 
+    function moveLeaveMonth(offset) {
+      const input = document.getElementById('leaveMonthFilter');
+      if (!input) return;
+      if (!input.value) {
+        const d = new Date();
+        input.value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      }
+      const [year, monthNumber] = input.value.split('-').map(Number);
+      const target = new Date(Date.UTC(year, monthNumber - 1 + offset, 1));
+      input.value = `${target.getUTCFullYear()}-${String(target.getUTCMonth() + 1).padStart(2, '0')}`;
+      onLeaveFilterChange();
+    }
+
     function filterLeavesTable() {
       const tbody = document.getElementById('leaveRequestsTableBody');
       if (!tbody) return;
       const search = (document.getElementById('leaveSearch')?.value || '').trim().toLowerCase();
       const statusFilter = document.getElementById('leaveStatusFilter')?.value || 'all';
+      const monthFilter = document.getElementById('leaveMonthFilter')?.value || '';
 
       const displayRequests = _allLeaveRequests;
       _leaveRequestDisplayData = new Map(displayRequests.map(req => [String(req.id), req]));
@@ -13586,56 +14326,76 @@ async function fetchMultiLiveDetections() {
         const idStr = `${req.user_id || ''} ${(req.child_requests || []).map(child => child.id).join(' ')}`.toLowerCase();
         const reqIdStr = String(req.id || '').toLowerCase();
         const nameMatch = !search || nameStr.includes(search) || idStr.includes(search) || reqIdStr.includes(search);
-        const requestStatuses = (req.child_requests || [req]).map(child => String(child.status || '').toLowerCase());
-        const statusMatch = statusFilter === 'all' || requestStatuses.includes(statusFilter.toLowerCase());
-        return nameMatch && statusMatch;
+        const statusMatch = statusFilter === 'all' || String(req.status || '').toLowerCase() === statusFilter;
+        const dateFilter = document.getElementById('leaveDateFilter')?.value || '';
+        
+        let monthMatch = true;
+        let dateMatch = true;
+        
+        const isValidDate = (d) => {
+          if (!d || typeof d !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(d)) return false;
+          const [y, m, day] = d.split('-').map(Number);
+          const dateObj = new Date(y, m - 1, day);
+          return dateObj.getFullYear() === y && dateObj.getMonth() === m - 1 && dateObj.getDate() === day;
+        };
+        const rStart = isValidDate(req.start_date) ? req.start_date : null;
+        const isMissingEnd = (req.end_date === null || req.end_date === undefined || req.end_date === "");
+        const rEnd = isMissingEnd ? rStart : (isValidDate(req.end_date) ? req.end_date : null);
+        
+        if (monthFilter) {
+          if (rStart && rEnd) {
+            const [fYear, fMonth] = monthFilter.split('-').map(Number);
+            const daysInMonth = new Date(fYear, fMonth, 0).getDate();
+            const fMonthStr = String(fMonth).padStart(2, '0');
+            const monthStart = `${fYear}-${fMonthStr}-01`;
+            const monthEnd = `${fYear}-${fMonthStr}-${daysInMonth}`;
+            monthMatch = (rStart <= monthEnd && rEnd >= monthStart);
+          } else {
+            monthMatch = false; // Missing/invalid dates don't match active filter
+          }
+        }
+        
+        if (dateFilter) {
+          if (rStart && rEnd) {
+             dateMatch = (rStart <= dateFilter && rEnd >= dateFilter);
+          } else {
+             dateMatch = false; // Missing/invalid dates don't match active filter
+          }
+        }
+        
+        return nameMatch && statusMatch && monthMatch && dateMatch;
       });
 
-      const employeeGroups = new Map();
-      filtered.forEach(request => {
-        const key = String(request.user_id || request.user_name || 'unknown');
-        if (!employeeGroups.has(key)) {
-          employeeGroups.set(key, {
-            user_id: request.user_id,
-            user_name: request.user_name || `User ${request.user_id || ''}`,
-            requests: []
-          });
-        }
-        employeeGroups.get(key).requests.push(request);
-      });
-      const groupByEmployee = statusFilter !== 'all';
-      const filteredGroups = (groupByEmployee
-        ? [...employeeGroups.values()]
-        : filtered.map(request => ({
+      const showStatusCount = statusFilter !== 'all';
+      const filteredGroups = filtered.map(request => ({
             user_id: request.user_id,
             user_name: request.user_name || `User ${request.user_id || ''}`,
             requests: [request]
-          }))
-      ).sort((a, b) => String(a.user_name).localeCompare(String(b.user_name)));
+          })).sort((a, b) => String(a.user_name).localeCompare(String(b.user_name)));
       const total = filteredGroups.length;
       const totalPages = Math.max(1, Math.ceil(total / _leavePageSize));
       if (_leavePage > totalPages) _leavePage = totalPages;
       if (_leavePage < 1) _leavePage = 1;
 
       const infoEl = document.getElementById('leavePaginationInfo');
-      const prevBtn = document.getElementById('leavePrevBtn');
-      const nextBtn = document.getElementById('leaveNextBtn');
-      const indEl = document.getElementById('leavePageIndicator');
+      const pageControlsId = 'leavePageControls';
 
       const startIdx = total === 0 ? 0 : (_leavePage - 1) * _leavePageSize + 1;
       const endIdx = Math.min(_leavePage * _leavePageSize, total);
       const pagedGroups = filteredGroups.slice((_leavePage - 1) * _leavePageSize, _leavePage * _leavePageSize);
-      const pageRequestCount = pagedGroups.reduce((sum, group) => sum + group.requests.length, 0);
+      const pageStatusLeaveCount = pagedGroups.length;
+      const totalStatusLeaveCount = filtered.length;
 
       if (infoEl) {
         const pageRange = total === 0 ? 0 : `${startIdx}-${endIdx}`;
-        infoEl.textContent = groupByEmployee
-          ? `Showing ${pageRange} of ${total} employees · ${pageRequestCount} requests on this page`
+        infoEl.textContent = showStatusCount
+          ? `Showing ${pageStatusLeaveCount} of ${totalStatusLeaveCount} ${statusFilter} leave${totalStatusLeaveCount === 1 ? '' : 's'} across ${new Set(filtered.map(req => String(req.user_id))).size} employee${new Set(filtered.map(req => String(req.user_id))).size === 1 ? '' : 's'}`
           : `Showing ${pageRange} of ${total} requests`;
       }
-      if (indEl) indEl.textContent = `Page ${_leavePage} of ${totalPages}`;
-      if (prevBtn) prevBtn.disabled = _leavePage <= 1;
-      if (nextBtn) nextBtn.disabled = _leavePage >= totalPages;
+      renderLeavePaginationControls(pageControlsId, _leavePage, totalPages, page => {
+        _leavePage = page;
+        filterLeavesTable();
+      });
 
       if (total === 0) {
         tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted p-4">No leave requests found matching filters.</td></tr>';
@@ -13687,12 +14447,12 @@ async function fetchMultiLiveDetections() {
 
         return `
           <tr class="leave-request-child-row">
-            <td style="${groupByEmployee ? 'padding-left:30px; color:#64748b; font-size:0.86em;' : 'font-weight:700; color:#173042;'}">
-              ${groupByEmployee ? `Request #${req.id}` : `${escapeHtml(req.user_name || 'User ' + req.user_id)}<small style="display:block; color:#94a3b8; font-weight:500;">#${req.id}</small>`}
+            <td style="font-weight:700; color:#173042;">
+              ${escapeHtml(req.user_name || 'User ' + req.user_id)}<small style="display:block; color:#94a3b8; font-weight:500;">#${req.id}</small>
             </td>
             <td><span class="badge bg-light text-dark border" style="text-transform:capitalize;">${escapeHtml(req.leave_type || 'annual')}</span></td>
             <td>
-              <div style="font-weight:600; color:#475569; font-size:0.88em;">${start} &rarr; ${end}</div>
+              <div style="font-weight:600; color:#475569; font-size:0.88em; font-family:'JetBrains Mono', monospace;">${start} &rarr; ${end}</div>
               ${daysBadge}
             </td>
             <td><div style="display:flex; flex-wrap:wrap; gap:4px;">${halfLeaveBadge}${fullDaySplit}</div></td>
@@ -13707,22 +14467,18 @@ async function fetchMultiLiveDetections() {
           </tr>
         `;
         }).join('');
-        const parentRow = groupByEmployee ? `
-          <tr class="leave-request-parent-row" style="background:#f2faff; border-top:1px solid #cfe8f7;">
-            <td colspan="7" style="padding:10px 16px;">
-              <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
-                <strong style="color:#173042;">${escapeHtml(group.user_name)} <small style="color:#94a3b8; font-weight:600;">#${escapeHtml(group.user_id || '')}</small></strong>
-              </div>
-            </td>
-          </tr>` : '';
-        return `${parentRow}${requestRows}`;
+        return requestRows;
       }).join('');
     }
 
     let leaveCompletePreviousBodyOverflow = null;
     function openLeaveCompleteView(leaveId) {
-      const request = _leaveRequestDisplayData.get(String(leaveId)) || _allLeaveRequests.find(item => String(item.id) === String(leaveId));
-      if (!request) return;
+      const selectedRequest = _leaveRequestDisplayData.get(String(leaveId)) || _allLeaveRequests.find(item => String(item.id) === String(leaveId));
+      if (!selectedRequest) return;
+      const statusFilter = document.getElementById('leaveStatusFilter')?.value || 'all';
+      let request = selectedRequest;
+      let scopedRequestCount = 1;
+      let scopedLeaveCount = 1;
       const requestedDays = Number(request.requested_days || 0);
       const leaveType = String(request.leave_type || 'annual').replace(/_/g, ' ');
       const paidDays = Number(request.paid_days != null ? request.paid_days : (leaveType.toLowerCase() === 'unpaid' ? 0 : requestedDays));
@@ -13741,11 +14497,14 @@ async function fetchMultiLiveDetections() {
         const isHalfLeave = child.leave_duration === 'half';
         const days = isHalfLeave ? 1 : Number(child.requested_days || 0);
         const isUnpaid = childType === 'unpaid' || Number(child.unpaid_days || 0) > 0;
+        const requestPrefix = statusFilter !== 'all' && scopedRequestCount > 1
+          ? `Request #${child.parent_request_id || child.id} · `
+          : '';
         return {
           id: Number(child.id),
           label: isHalfLeave
-            ? `${childType.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase())} Half Leave`
-            : childType === 'excess_paid' ? 'Paid Leave (Quota Override)' : childType === 'unpaid' ? 'Unpaid Leave' : `${childType.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase())} Leave`,
+            ? `${requestPrefix}${childType.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase())} Half Leave`
+            : `${requestPrefix}${childType === 'excess_paid' ? 'Paid Leave (Quota Override)' : childType === 'unpaid' ? 'Unpaid Leave' : `${childType.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase())} Leave`}`,
           start: child.start_date,
           end: child.end_date,
           reason: child.reason || '',
@@ -13835,7 +14594,9 @@ async function fetchMultiLiveDetections() {
       }
       putText('leaveCompleteAvatar', String(request.user_name || '?').charAt(0).toUpperCase());
       putText('leaveCompleteEmployee', request.user_name || `User ${request.user_id}`);
-      putText('leaveCompleteRequestId', `Request #${request.id} · Employee #${request.user_id}`);
+      putText('leaveCompleteRequestId', statusFilter === 'all'
+        ? `Request #${request.id} · Employee #${request.user_id}`
+        : `${scopedLeaveCount} ${statusFilter} leave${scopedLeaveCount === 1 ? '' : 's'} · Employee #${request.user_id}`);
       putText('leaveCompletePeriod', `${request.start_date || '--'} to ${request.end_date || '--'}`);
       const halfLeaveCount = Array.isArray(request.child_requests)
         ? request.child_requests.filter(child => child.leave_duration === 'half').length
@@ -13849,7 +14610,9 @@ async function fetchMultiLiveDetections() {
         : String(request.status || 'pending').replace(/\b\w/g, char => char.toUpperCase());
       const allocationSummary = document.getElementById('leaveCompleteAllocationSummary');
       if (allocationSummary) {
-        allocationSummary.textContent = `One leave request: ${request.start_date || '--'} to ${request.end_date || '--'} (${durationSummary}). ${paidDays} paid day(s) + ${unpaidDays} unpaid day(s).`;
+        allocationSummary.textContent = statusFilter === 'all'
+          ? `One leave request: ${request.start_date || '--'} to ${request.end_date || '--'} (${durationSummary}). ${paidDays} paid day(s) + ${unpaidDays} unpaid day(s).`
+          : `${scopedLeaveCount} ${statusFilter} leave${scopedLeaveCount === 1 ? '' : 's'} for this employee: ${request.start_date || '--'} to ${request.end_date || '--'} (${durationSummary}). ${paidDays} paid day(s) + ${unpaidDays} unpaid day(s).`;
       }
       putText('leaveCompleteRequestedDays', halfLeaveCount
         ? `${fullDayCount ? `${fullDayCount} day(s), ` : ''}${halfLeaveCount} half leave(s)`
@@ -14089,17 +14852,16 @@ async function fetchMultiLiveDetections() {
       if (_leaveBalPage < 1) _leaveBalPage = 1;
 
       const infoEl = document.getElementById('leaveBalancePaginationInfo');
-      const prevBtn = document.getElementById('leaveBalancePrevBtn');
-      const nextBtn = document.getElementById('leaveBalanceNextBtn');
-      const indEl = document.getElementById('leaveBalancePageIndicator');
+      const pageControlsId = 'leaveBalancePageControls';
 
       const startIdx = total === 0 ? 0 : (_leaveBalPage - 1) * _leaveBalPageSize + 1;
       const endIdx = Math.min(_leaveBalPage * _leaveBalPageSize, total);
 
       if (infoEl) infoEl.textContent = `Showing ${total === 0 ? 0 : `${startIdx}-${endIdx}`} of ${total} records`;
-      if (indEl) indEl.textContent = `Page ${_leaveBalPage} of ${totalPages}`;
-      if (prevBtn) prevBtn.disabled = _leaveBalPage <= 1;
-      if (nextBtn) nextBtn.disabled = _leaveBalPage >= totalPages;
+      renderLeavePaginationControls(pageControlsId, _leaveBalPage, totalPages, page => {
+        _leaveBalPage = page;
+        filterLeaveBalancesTable();
+      });
 
       if (total === 0) {
         tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted p-4">No employee balances found.</td></tr>';
@@ -14210,20 +14972,69 @@ async function fetchMultiLiveDetections() {
     function filterLeaveEmployees() {
       const dept = document.getElementById('modalLeaveDeptSelect')?.value;
       const users = window._allLeaveUsers || [];
-      const filtered = dept ? users.filter(u => u.department === dept) : users;
+      const filtered = dept ? users.filter(u => u.department === dept) : [];
       
       const select = document.getElementById('modalLeaveUserSelect');
+      if (!select) return;
       if (window._leaveUserTomSelect) {
         window._leaveUserTomSelect.destroy();
+        window._leaveUserTomSelect = null;
       }
-      select.innerHTML = '<option value="">Select Employee...</option>' + 
+      select.disabled = !dept || filtered.length === 0;
+      const placeholder = !dept ? 'Select Department First...' : (filtered.length ? 'Select Employee...' : 'No employees in this department');
+      select.innerHTML = `<option value="">${placeholder}</option>` +
         filtered.map(u => `<option value="${u.id}">${escapeHtml(u.name)} (${escapeHtml(u.department || 'Staff')})</option>`).join('');
       
       window._leaveUserTomSelect = new TomSelect(select, {
         create: false,
         sortField: { field: "text", direction: "asc" }
       });
+      if (select.disabled) window._leaveUserTomSelect.disable();
       select.dispatchEvent(new Event('change'));
+    }
+
+    let leaveCompanyHolidaysPromise = null;
+
+    function loadCompanyHolidaysForLeave() {
+      if (!leaveCompanyHolidaysPromise) {
+        leaveCompanyHolidaysPromise = fetch('/api/holidays')
+          .then(async response => {
+            if (!response.ok) throw new Error('Could not load company holidays');
+            const holidays = await response.json();
+            return Array.isArray(holidays) ? holidays : [];
+          })
+          .catch(error => {
+            leaveCompanyHolidaysPromise = null;
+            console.error('Load holidays for leave validation error:', error);
+            return [];
+          });
+      }
+      return leaveCompanyHolidaysPromise;
+    }
+
+    function findCompanyHolidayInLeaveRange(startDate, endDate, holidays) {
+      const start = new Date(`${startDate}T00:00:00Z`);
+      const end = new Date(`${endDate}T00:00:00Z`);
+      if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) return null;
+
+      for (const day = new Date(start); day <= end; day.setUTCDate(day.getUTCDate() + 1)) {
+        const currentDate = day.toISOString().slice(0, 10);
+        const currentMonthDay = currentDate.slice(5);
+        const holiday = holidays.find(item => {
+          const holidayStart = String(item.holiday_date || '');
+          const holidayEnd = String(item.end_date || holidayStart);
+          if (Number(item.is_recurring)) {
+            const startMonthDay = holidayStart.slice(5);
+            const endMonthDay = holidayEnd.slice(5);
+            return startMonthDay <= endMonthDay
+              ? startMonthDay <= currentMonthDay && currentMonthDay <= endMonthDay
+              : currentMonthDay >= startMonthDay || currentMonthDay <= endMonthDay;
+          }
+          return holidayStart <= currentDate && currentDate <= holidayEnd;
+        });
+        if (holiday) return { ...holiday, matched_date: currentDate };
+      }
+      return null;
     }
 
     let fileLeavePreviousBodyOverflow = null;
@@ -14262,11 +15073,14 @@ async function fetchMultiLiveDetections() {
       if (reasonInput) reasonInput.value = '';
       if (sInput) sInput.value = '';
       if (eInput) eInput.value = '';
-      if (durationInput) durationInput.value = 'full';
+      if (durationInput) { durationInput.value = 'full'; durationInput.disabled = true; }
       if (eInput) eInput.disabled = false;
 
       select.innerHTML = '<option value="">Loading active staff...</option>';
+      select.disabled = true;
       modal.style.display = 'flex';
+      leaveCompanyHolidaysPromise = null;
+      loadCompanyHolidaysForLeave();
 
       try {
         const res = await fetch('/api/users');
@@ -14275,7 +15089,7 @@ async function fetchMultiLiveDetections() {
         const depts = [...new Set(window._allLeaveUsers.map(u => u.department).filter(Boolean))].sort();
         const deptSelect = document.getElementById('modalLeaveDeptSelect');
         if (deptSelect) {
-          deptSelect.innerHTML = '<option value="">All Departments</option>' + depts.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join('');
+          deptSelect.innerHTML = '<option value="">Select Department...</option>' + depts.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join('');
           deptSelect.value = '';
         }
         if (typeof filterLeaveEmployees === 'function') filterLeaveEmployees();
@@ -14306,6 +15120,23 @@ async function fetchMultiLiveDetections() {
           el.addEventListener('input', validateModalLeaveQuota);
         }
       });
+      validateModalLeaveQuota();
+    }
+
+    function updateLeaveDurationAvailability() {
+      const durationSelect = document.getElementById('modalLeaveDurationSelect');
+      const typeSelect = document.getElementById('modalLeaveTypeSelect');
+      if (!durationSelect || !typeSelect) return;
+
+      const selectedType = (_allLeaveTypes || []).find(type => type.code === typeSelect.value);
+      const halfLeaveAllowed = Boolean(selectedType && selectedType.half_leave_enabled);
+      durationSelect.disabled = !halfLeaveAllowed;
+      if (!halfLeaveAllowed) durationSelect.value = 'full';
+      onLeaveDurationChange();
+    }
+
+    function onLeaveTypeChange() {
+      updateLeaveDurationAvailability();
       validateModalLeaveQuota();
     }
 
@@ -14370,6 +15201,30 @@ async function fetchMultiLiveDetections() {
       }
 
       try {
+        if (startDate || endDate) {
+          const holidays = await loadCompanyHolidaysForLeave();
+          if (requestSequence !== leaveQuotaRequestSequence) return;
+          const holiday = findCompanyHolidayInLeaveRange(startDate || endDate, endDate || startDate, holidays);
+          if (holiday) {
+            const holidayName = holiday.name || 'A company holiday';
+            currentLeaveQuotaValid = false;
+            currentLeaveQuotaMsg = `${holidayName} is a public holiday on ${holiday.matched_date}. Leave cannot be requested on a holiday. Please choose another date.`;
+            currentLeaveQuotaData = { allowed: false, reason_code: 'public_holiday', message: currentLeaveQuotaMsg };
+            const excessContainer = document.getElementById('excessLeaveContainer');
+            if (excessContainer) excessContainer.style.display = 'none';
+            alertDiv.style.display = 'block';
+            alertDiv.style.background = '#fffbeb';
+            alertDiv.style.color = '#92400e';
+            alertDiv.style.border = '1px solid #fde68a';
+            alertDiv.innerHTML = `<i class="fa-solid fa-calendar-day" style="margin-right:6px; color:#b45309;"></i> A little heads-up: <strong>${escapeHtml(holidayName)}</strong> is a public holiday on <strong>${escapeHtml(holiday.matched_date)}</strong>, so leave can't be applied that day. Please choose another date.`;
+            if (badgeDiv) {
+              badgeDiv.innerHTML = `<span style="color:#92400e; font-weight:700;"><i class="fa-solid fa-calendar-day"></i> Public holiday: ${escapeHtml(holidayName)} (${escapeHtml(holiday.matched_date)})</span>`;
+            }
+            updateLeaveCalculationSummary(null);
+            return;
+          }
+        }
+
         let url = `/api/leaves/check-quota?leave_type=${encodeURIComponent(leaveType)}&leave_duration=${encodeURIComponent(leaveDuration)}`;
         if (userId) url += `&user_id=${encodeURIComponent(userId)}`;
         if (startDate) url += `&start_date=${encodeURIComponent(startDate)}`;
@@ -14576,11 +15431,11 @@ async function fetchMultiLiveDetections() {
       const code = name.toLowerCase().replace(/[^a-z0-9]/g, '_');
 
       if (!name) {
-        alert("Please enter a policy name.");
+        alert("Please enter a leave type name.");
         return;
       }
       if (!Number.isInteger(months) || months < 1 || months > 12) {
-        alert("Policy duration must be a whole number from 1 to 12 months.");
+        alert("Renewal period must be a whole number from 1 to 12 months.");
         return;
       }
 
@@ -14594,7 +15449,7 @@ async function fetchMultiLiveDetections() {
         if (data.success) {
           closeLeaveTypeModal();
           if (typeof showAppToast === 'function') {
-            showAppToast("Leave category policy added successfully!", "success");
+            showAppToast("Leave type added successfully.", "success");
           }
           loadLeaveTypes();
           loadLeaveBalances();
@@ -14723,6 +15578,8 @@ async function fetchMultiLiveDetections() {
     // ============================================
     let _allOvertimeRecords = [];
     let _otSalaryConfigs = {};
+    let otLogCurrentPage = 1;
+    const otLogPageSize = 25;
 
     function escapeOtHtml(str) {
       if (str === null || str === undefined) return '';
@@ -14792,9 +15649,78 @@ async function fetchMultiLiveDetections() {
       if (kpiAmount) kpiAmount.textContent = `PKR ${approvedAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     }
 
-    function filterOvertimeTable() {
+    function enableOvertimeLogDragScroll() {
+      const scroller = document.getElementById('otLogTableScroller');
+      if (!scroller || scroller.dataset.dragScrollBound) return;
+      scroller.dataset.dragScrollBound = 'true';
+      let pointerStartX = 0;
+      let scrollStartLeft = 0;
+      let dragging = false;
+
+      scroller.addEventListener('pointerdown', event => {
+        if (event.pointerType !== 'mouse' || event.button !== 0 || event.target.closest('button, input, select, textarea, a, label')) return;
+        if (scroller.scrollWidth <= scroller.clientWidth) return;
+        pointerStartX = event.clientX;
+        scrollStartLeft = scroller.scrollLeft;
+        dragging = true;
+        event.preventDefault();
+        scroller.setPointerCapture(event.pointerId);
+      });
+      scroller.addEventListener('pointermove', event => {
+        if (!dragging) return;
+        const delta = event.clientX - pointerStartX;
+        if (Math.abs(delta) > 3) scroller.classList.add('is-dragging');
+        scroller.scrollLeft = scrollStartLeft - delta;
+      });
+      const stopDragging = () => {
+        dragging = false;
+        scroller.classList.remove('is-dragging');
+      };
+      scroller.addEventListener('pointerup', stopDragging);
+      scroller.addEventListener('pointercancel', stopDragging);
+      scroller.addEventListener('lostpointercapture', stopDragging);
+    }
+
+    function renderOtLogPagination(totalItems, totalPages, startIndex, endIndex) {
+      const startEl = document.getElementById('otLogShowingStart');
+      const endEl = document.getElementById('otLogShowingEnd');
+      const totalEl = document.getElementById('otLogShowingTotal');
+      const controls = document.getElementById('otLogPageControls');
+      if (startEl) startEl.textContent = totalItems === 0 ? 0 : startIndex + 1;
+      if (endEl) endEl.textContent = endIndex;
+      if (totalEl) totalEl.textContent = totalItems;
+      if (!controls) return;
+      controls.innerHTML = '';
+
+      const previous = document.createElement('button');
+      previous.className = 'app-page-btn';
+      previous.innerHTML = '<i class="fa-solid fa-chevron-left"></i> Previous';
+      previous.disabled = otLogCurrentPage === 1;
+      previous.onclick = () => filterOvertimeTable(false, otLogCurrentPage - 1);
+      controls.appendChild(previous);
+
+      for (let page = 1; page <= totalPages; page++) {
+        const button = document.createElement('button');
+        button.className = `app-page-btn ${page === otLogCurrentPage ? 'active' : ''}`;
+        button.textContent = page;
+        button.onclick = () => filterOvertimeTable(false, page);
+        controls.appendChild(button);
+      }
+
+      const next = document.createElement('button');
+      next.className = 'app-page-btn';
+      next.innerHTML = 'Next <i class="fa-solid fa-chevron-right"></i>';
+      next.disabled = otLogCurrentPage >= totalPages;
+      next.onclick = () => filterOvertimeTable(false, otLogCurrentPage + 1);
+      controls.appendChild(next);
+    }
+
+    function filterOvertimeTable(resetPage = true, requestedPage = null) {
       const tbody = document.getElementById('overtimeTableBody');
       if (!tbody) return;
+      enableOvertimeLogDragScroll();
+      if (requestedPage !== null) otLogCurrentPage = requestedPage;
+      else if (resetPage) otLogCurrentPage = 1;
       const search = (document.getElementById('otSearchInput')?.value || '').toLowerCase().trim();
       const statusFilter = (document.getElementById('otStatusFilter')?.value || 'all').toLowerCase();
       const deptFilter = (document.getElementById('otDepartmentFilter')?.value || 'all').toLowerCase();
@@ -14834,12 +15760,20 @@ async function fetchMultiLiveDetections() {
         String(a.user_name).localeCompare(String(b.user_name))
       );
 
+      const totalItems = filtered.length;
+      const totalPages = Math.ceil(totalItems / otLogPageSize) || 1;
+      otLogCurrentPage = Math.max(1, Math.min(otLogCurrentPage, totalPages));
+      const startIndex = (otLogCurrentPage - 1) * otLogPageSize;
+      const endIndex = Math.min(startIndex + otLogPageSize, totalItems);
+      const pageGroups = filtered.slice(startIndex, endIndex);
+      renderOtLogPagination(totalItems, totalPages, startIndex, endIndex);
+
       if (!filtered.length) {
         tbody.innerHTML = '<tr><td colspan="12" class="text-center text-muted p-4">No overtime records match the selected criteria.</td></tr>';
         return;
       }
 
-      tbody.innerHTML = filtered.map(group => {
+      tbody.innerHTML = pageGroups.map(group => {
         const records = group.records;
         const pending = records.filter(r => (r.status || 'pending').toLowerCase() === 'pending');
         const approved = records.filter(r => (r.status || '').toLowerCase() === 'approved');
@@ -14906,6 +15840,7 @@ async function fetchMultiLiveDetections() {
     async function openAddOvertimeModal() {
       const modal = document.getElementById('addOvertimeModal');
       const select = document.getElementById('modalOtUserSelect');
+      const deptSelect = document.getElementById('modalOtDeptSelect');
       const dateInput = document.getElementById('modalOtDateInput');
       const hoursInput = document.getElementById('modalOtHoursInput');
       const reasonInput = document.getElementById('modalOtReasonInput');
@@ -14923,27 +15858,55 @@ async function fetchMultiLiveDetections() {
         dateInput.value = `${yyyy}-${mm}-${dd}`;
       }
 
-      select.innerHTML = '<option value="">Loading active staff...</option>';
+      select.innerHTML = '<option value="">Select Department First...</option>';
+      select.disabled = true;
+      if (deptSelect) {
+        deptSelect.innerHTML = '<option value="">Loading departments...</option>';
+        deptSelect.value = '';
+      }
       modal.style.display = 'flex';
 
       try {
         const res = await fetch('/api/salary');
         const configs = await res.json();
-        if (Array.isArray(configs)) {
-          select.innerHTML = '<option value="">Select Employee...</option>' +
-            configs.map(c => `<option value="${c.user_id}" data-rate="${c.ot_rate || 0}" data-basic="${c.basic_salary || 0}" data-dept="${escapeOtHtml(c.department || '')}">${escapeOtHtml(c.user_name)} (${escapeOtHtml(c.department || 'Staff')}) - Rate: PKR ${Number(c.ot_rate || 0).toLocaleString()}/hr</option>`).join('');
+        window._allOtSalaryConfigs = Array.isArray(configs) ? configs : [];
+        const departments = [...new Set(window._allOtSalaryConfigs.map(config => config.department).filter(Boolean))].sort();
+        if (deptSelect) {
+          deptSelect.innerHTML = '<option value="">Select Department...</option>' +
+            departments.map(department => `<option value="${escapeOtHtml(department)}">${escapeOtHtml(department)}</option>`).join('');
         }
-        if (window._otUserTomSelect) {
-          window._otUserTomSelect.destroy();
-        }
-        window._otUserTomSelect = new TomSelect(select, {
-          create: false,
-          sortField: { field: "text", direction: "asc" }
-        });
+        filterOtEmployees();
       } catch (e) {
-        select.innerHTML = '<option value="">Failed to load employees</option>';
+        if (deptSelect) deptSelect.innerHTML = '<option value="">Failed to load departments</option>';
+        select.innerHTML = '<option value="">Select Department First...</option>';
+        select.disabled = true;
       }
       onOtEmployeeChange();
+    }
+
+    function filterOtEmployees() {
+      const department = document.getElementById('modalOtDeptSelect')?.value;
+      const select = document.getElementById('modalOtUserSelect');
+      if (!select) return;
+
+      const configs = window._allOtSalaryConfigs || [];
+      const employees = department ? configs.filter(config => config.department === department) : [];
+      if (window._otUserTomSelect) {
+        window._otUserTomSelect.destroy();
+        window._otUserTomSelect = null;
+      }
+
+      select.disabled = !department || employees.length === 0;
+      const placeholder = !department ? 'Select Department First...' : (employees.length ? 'Select Employee...' : 'No employees in this department');
+      select.innerHTML = `<option value="">${placeholder}</option>` + employees.map(config =>
+        `<option value="${config.user_id}" data-rate="${config.ot_rate || 0}" data-basic="${config.basic_salary || 0}" data-dept="${escapeOtHtml(config.department || '')}">${escapeOtHtml(config.user_name)} (${escapeOtHtml(config.department || 'Staff')}) - Rate: PKR ${Number(config.ot_rate || 0).toLocaleString()}/hr</option>`
+      ).join('');
+      window._otUserTomSelect = new TomSelect(select, {
+        create: false,
+        sortField: { field: 'text', direction: 'asc' }
+      });
+      if (select.disabled) window._otUserTomSelect.disable();
+      select.dispatchEvent(new Event('change'));
     }
 
     function closeAddOvertimeModal() {
@@ -15051,7 +16014,7 @@ async function fetchMultiLiveDetections() {
         });
         const data = await res.json();
         if (data.success && data.id) {
-          if (initialStatus === 'approved') {
+          if (initialStatus === 'approved' && !data.limit_exceeded) {
             const approvalRes = await fetch(`/api/overtime/${data.id}`, {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
@@ -15065,7 +16028,12 @@ async function fetchMultiLiveDetections() {
             }
           }
           closeAddOvertimeModal();
-          showAppToast(`Overtime logged successfully (${hours} hrs).`, 'success');
+          showAppToast(
+            data.limit_exceeded
+              ? (data.limit_message || 'This OT exceeds the configured maximum and was sent for admin review.')
+              : `Overtime logged successfully (${hours} hrs).`,
+            data.limit_exceeded ? 'warning' : 'success'
+          );
           loadOvertimeRecords();
         } else {
           if (msg) msg.innerHTML = `<div class="alert alert-danger py-2">${escapeOtHtml(data.error || 'Failed to save overtime.')}</div>`;
@@ -15111,6 +16079,11 @@ async function fetchMultiLiveDetections() {
     }
 
     async function deleteOvertimeRecord(otId) {
+      const record = _otDetailRecords.find(item => String(item.id) === String(otId));
+      if (String(record?.status || '').toLowerCase() === 'approved') {
+        showAppToast('Approved overtime records cannot be deleted.', 'warning');
+        return;
+      }
       if (!confirm(`Are you sure you want to permanently delete overtime record #${otId}?`)) return;
       try {
         const res = await fetch(`/api/overtime/${otId}`, { method: 'DELETE' });
@@ -15439,6 +16412,7 @@ async function fetchMultiLiveDetections() {
         const premiumLabel = Number(r.ot_premium_percent || 0) > 0 ? ` (+${Number(r.ot_premium_percent).toFixed(2).replace(/\.00$/, '')}%)` : '';
         const st = (r.status||'pending').toLowerCase();
         const isPending = st === 'pending';
+        const isApproved = st === 'approved';
         let statusBadge;
         if (st === 'approved') statusBadge = '<span class="badge bg-success-subtle text-success"><i class="fa-solid fa-check"></i> Approved</span>';
         else if (st === 'rejected') statusBadge = '<span class="badge bg-danger-subtle text-danger"><i class="fa-solid fa-xmark"></i> Rejected</span>';
@@ -15453,7 +16427,7 @@ async function fetchMultiLiveDetections() {
             <td style="font-size:0.88em; color:#475569;" title="${escapeOtHtml(r.reason||'')}">${escapeOtHtml(r.reason||'--')}</td>
             <td class="text-center">${statusBadge}</td>
             <td style="font-size:0.86em; color:#64748b;">${escapeOtHtml(r.approved_by || '--')}</td>
-            <td class="text-center"><button class="btn btn-sm btn-outline-danger" onclick="deleteOvertimeRecord(${r.id})" title="Delete this overtime record"><i class="fa-solid fa-trash"></i></button></td>
+            <td class="text-center">${isApproved ? '' : `<button class="btn btn-sm btn-outline-danger" onclick="deleteOvertimeRecord(${r.id})" title="Delete this overtime record" aria-label="Delete overtime record"><i class="fa-solid fa-trash"></i></button>`}</td>
           </tr>`;
       }).join('');
     }
@@ -15597,6 +16571,85 @@ async function fetchMultiLiveDetections() {
           slider.scrollLeft = scrollLeft - walk;
         });
       });
+    });
+
+    let _cachedRuleTargets = null;
+    async function fetchRuleTargets() {
+        if (!_cachedRuleTargets) {
+            _cachedRuleTargets = { departments: [], employees: [] };
+            try {
+                const [depRes, empRes] = await Promise.all([
+                    fetch('/api/departments?active_only=false'),
+                    fetch('/api/users')
+                ]);
+                if (depRes.ok) {
+                    const data = await depRes.json();
+                    _cachedRuleTargets.departments = data.departments || [];
+                }
+                if (empRes.ok) {
+                    const data = await empRes.json();
+                    _cachedRuleTargets.employees = Array.isArray(data) ? data : (data.users || []);
+                }
+            } catch (e) { console.error("Error fetching rule targets", e); }
+        }
+        return _cachedRuleTargets;
+    }
+
+    window.updateHalfLeaveRuleScopeOptions = async function() {
+        const scope = document.getElementById('halfLeaveRuleScope').value;
+        const targetSelect = document.getElementById('halfLeaveRuleTarget');
+        if (!targetSelect) return;
+        targetSelect.innerHTML = `<option value="">Select ${scope}...</option>`;
+        
+        const targets = await fetchRuleTargets();
+        
+        if (scope === 'department') {
+            targets.departments.forEach(d => {
+                const opt = document.createElement('option');
+                opt.value = d.id;
+                opt.textContent = d.name;
+                targetSelect.appendChild(opt);
+            });
+        } else if (scope === 'employee') {
+            targets.employees.forEach(e => {
+                const opt = document.createElement('option');
+                opt.value = e.id || e.user_id;
+                opt.textContent = `${e.name || e.user_name} (ID: ${e.id || e.user_id})`;
+                targetSelect.appendChild(opt);
+            });
+        }
+    };
+
+    window.updateOvertimeRuleScopeOptions = async function() {
+        const scope = document.getElementById('overtimeRuleScope').value;
+        const targetSelect = document.getElementById('overtimeRuleTarget');
+        if (!targetSelect) return;
+        targetSelect.innerHTML = `<option value="">Select ${scope}...</option>`;
+        
+        const targets = await fetchRuleTargets();
+        
+        if (scope === 'department') {
+            targets.departments.forEach(d => {
+                const opt = document.createElement('option');
+                opt.value = d.id;
+                opt.textContent = d.name;
+                targetSelect.appendChild(opt);
+            });
+        } else if (scope === 'employee') {
+            targets.employees.forEach(e => {
+                const opt = document.createElement('option');
+                opt.value = e.id || e.user_id;
+                opt.textContent = `${e.name || e.user_name} (ID: ${e.id || e.user_id})`;
+                targetSelect.appendChild(opt);
+            });
+        }
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        if(document.getElementById('halfLeaveRuleScope')) window.updateHalfLeaveRuleScopeOptions();
+        if(document.getElementById('overtimeRuleScope')) window.updateOvertimeRuleScopeOptions();
+      }, 500);
     });
   </script>
   </body>

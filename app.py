@@ -3388,6 +3388,18 @@ def api_add_leave():
     except ValueError:
         return jsonify({'success': False, 'message': 'Invalid date format. Use YYYY-MM-DD.'}), 400
 
+    holiday = db.get_company_holiday_in_range(start_date, end_date)
+    if holiday:
+        holiday_name = holiday.get('name') or 'A company holiday'
+        holiday_date = holiday.get('matched_date') or start_date
+        message = f"{holiday_name} is a public holiday on {holiday_date}. Leave cannot be requested on a holiday. Please choose another date."
+        return jsonify({
+            'success': False,
+            'reason_code': 'public_holiday',
+            'error': message,
+            'message': message,
+        }), 400
+
     excess_treatment = data.get('excess_treatment')
     quota = db.check_leave_quota(
         int(user_id), leave_type, start_date, end_date,
@@ -3669,17 +3681,36 @@ def api_add_overtime():
     ot_date = str(data.get('ot_date', '')).strip()
     if not ot_date:
         return jsonify({'success': False, 'error': 'ot_date is required in YYYY-MM-DD format'}), 400
+    try:
+        datetime.strptime(ot_date, '%Y-%m-%d')
+    except ValueError:
+        return jsonify({'success': False, 'error': 'ot_date must use YYYY-MM-DD format'}), 400
+
+    limit_status = db.get_overtime_limit_status(int(user_id), ot_date, hours)
+    if limit_status.get('exceeded'):
+        return jsonify({'success': False, 'error': f"Overtime limit exceeded: Maximum allowed is {limit_status['maximum_hours']:g} hours {limit_status['period_label']}."}), 400
+    
+    reason = str(data.get('reason') or '')
 
     oid = db.add_overtime(
         user_id=int(user_id),
         user_name=user['name'] if user else data.get('user_name', ''),
         ot_date=ot_date,
         hours=hours,
-        reason=data.get('reason', ''),
+        reason=reason,
     )
     if not oid:
         return jsonify({'success': False, 'error': 'Failed to save overtime record'}), 500
-    return jsonify({'success': True, 'id': oid}), 201
+    return jsonify({
+        'success': True,
+        'id': oid,
+        'limit_exceeded': bool(limit_status.get('exceeded')),
+        'limit_message': (
+            f"This OT exceeds the configured maximum of {limit_status['maximum_hours']:g} hours {limit_status['period_label']}. "
+            "It was sent for admin review."
+            if limit_status.get('exceeded') else ''
+        ),
+    }), 201
 
 
 @app.route('/api/overtime/<int:ot_id>', methods=['PUT'])
@@ -3793,9 +3824,15 @@ def api_bulk_approve_overtime():
 @app.route('/api/overtime/<int:ot_id>', methods=['DELETE'])
 def api_delete_overtime(ot_id):
     try:
+        ot_record = db.get_overtime_by_id(ot_id)
+        if not ot_record:
+            return jsonify({'success': False, 'error': 'Overtime record not found'}), 404
+        if (ot_record.get('status') or '').lower() == 'approved':
+            return jsonify({'success': False, 'error': 'Cannot delete an approved overtime record.'}), 403
+            
         success = db.delete_overtime(ot_id)
         if not success:
-            return jsonify({'success': False, 'error': 'Overtime record not found or could not be deleted'}), 404
+            return jsonify({'success': False, 'error': 'Overtime record could not be deleted'}), 400
         return jsonify({'success': True, 'message': 'Overtime record deleted successfully'})
     except Exception as e:
         logger.exception("Failed to delete overtime record %s", ot_id)
@@ -3932,6 +3969,104 @@ def api_get_monthly_payroll():
         logger.exception("Failed to calculate payroll for %s", payroll_month)
         return jsonify({'error': f'Failed to calculate payroll: {e}'}), 500
 
+
+@app.route('/api/payroll-settings/scoped-rules/half-leave', methods=['GET'])
+def api_get_scoped_half_leave_rules():
+    try:
+        all_rules = db.get_payroll_scoped_rules()
+        half_leave_rules = [r for r in all_rules if r.get('policy_type') == 'half_leave_quota']
+        return jsonify(half_leave_rules)
+    except Exception as e:
+        logger.exception("Failed to get scoped half-leave rules")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/payroll-settings/scoped-rules/half-leave', methods=['POST'])
+def api_save_scoped_half_leave_rule():
+    data = request.json or {}
+    scope_type = data.get('scope_type')
+    scope_id = data.get('scope_id')
+    quota_mode = data.get('half_leave_quota_mode')
+    monthly_count = data.get('half_leaves_per_quota_day')
+    
+    if not scope_type or not scope_id or not quota_mode or not monthly_count:
+        return jsonify({'error': 'Missing required fields'}), 400
+        
+    try:
+        success = db.save_scoped_half_leave_rule(scope_type, scope_id, quota_mode, monthly_count)
+        if success:
+            return jsonify({'success': True})
+        return jsonify({'error': 'Failed to save rule. Ensure target exists and values are valid.'}), 400
+    except Exception as e:
+        logger.exception("Failed to save scoped half-leave rule")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/payroll-settings/scoped-rules/half-leave/<int:rule_id>', methods=['DELETE'])
+def api_delete_scoped_half_leave_rule(rule_id):
+    try:
+        all_rules = db.get_payroll_scoped_rules()
+        rule = next((r for r in all_rules if r['id'] == rule_id), None)
+        if not rule or rule.get('policy_type') != 'half_leave_quota':
+            return jsonify({'error': 'Rule not found or is not a half-leave rule'}), 404
+            
+        success = db.delete_payroll_scoped_rule(rule_id)
+        if success:
+            return jsonify({'success': True})
+        return jsonify({'error': 'Rule could not be deleted'}), 400
+    except Exception as e:
+        logger.exception("Failed to delete scoped rule")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/payroll-settings/scoped-rules/overtime-limit', methods=['GET'])
+def api_get_scoped_overtime_limit_rules():
+    try:
+        all_rules = db.get_payroll_scoped_rules()
+        ot_limit_rules = [r for r in all_rules if r.get('policy_type') == 'overtime_limit']
+        return jsonify(ot_limit_rules)
+    except Exception as e:
+        logger.exception("Failed to get scoped overtime limit rules")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/payroll-settings/scoped-rules/overtime-limit', methods=['POST'])
+def api_save_scoped_overtime_limit_rule():
+    data = request.json or {}
+    scope_type = data.get('scope_type')
+    scope_id = data.get('scope_id')
+    max_hours = data.get('overtime_max_hours')
+    period = data.get('overtime_max_period')
+    
+    if not scope_type or not scope_id or max_hours is None or not period:
+        return jsonify({'error': 'Missing required fields'}), 400
+    try:
+        max_h = float(max_hours)
+    except (TypeError, ValueError, OverflowError):
+        return jsonify({'error': 'Invalid max hours'}), 400
+    if not 0 <= max_h <= 744:
+        return jsonify({'error': 'Maximum overtime hours must be from 0 to 744.'}), 400
+        
+    try:
+        success = db.save_scoped_overtime_limit_rule(scope_type, scope_id, max_h, period)
+        if success:
+            return jsonify({'success': True})
+        return jsonify({'error': 'Failed to save rule. Ensure target exists and values are valid.'}), 400
+    except Exception as e:
+        logger.exception("Failed to save scoped overtime limit rule")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/payroll-settings/scoped-rules/overtime-limit/<int:rule_id>', methods=['DELETE'])
+def api_delete_scoped_overtime_limit_rule(rule_id):
+    try:
+        all_rules = db.get_payroll_scoped_rules()
+        rule = next((r for r in all_rules if r['id'] == rule_id), None)
+        if not rule or rule.get('policy_type') != 'overtime_limit':
+            return jsonify({'error': 'Rule not found or is not an overtime-limit rule'}), 404
+            
+        success = db.delete_payroll_scoped_rule(rule_id)
+        if success:
+            return jsonify({'success': True})
+        return jsonify({'error': 'Rule could not be deleted'}), 400
+    except Exception as e:
+        logger.exception("Failed to delete scoped rule")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/payroll/rules', methods=['GET'])
 def api_get_payroll_rules():
@@ -4176,6 +4311,27 @@ def api_get_overtime_premium_rules():
     return jsonify(db.get_overtime_premium_rules())
 
 
+@app.route('/api/settings/payroll/overtime-limit', methods=['PUT'])
+def api_update_overtime_limit_settings():
+    data = request.get_json(silent=True) or {}
+    try:
+        max_hours = float(data.get('overtime_max_hours'))
+    except (TypeError, ValueError, OverflowError):
+        return jsonify({'success': False, 'error': 'Maximum overtime hours must be a number from 0 to 744.'}), 400
+    period = str(data.get('overtime_max_period') or '').strip().lower()
+    if not 0 <= max_hours <= 744:
+        return jsonify({'success': False, 'error': 'Maximum overtime hours must be from 0 to 744.'}), 400
+    if period not in ('per_entry', 'day', 'week', 'month'):
+        return jsonify({'success': False, 'error': 'Choose an OT entry, day, week, or calendar month limit.'}), 400
+    if not db.update_overtime_limit_settings(max_hours, period):
+        return jsonify({'success': False, 'error': 'Failed to save overtime limit settings.'}), 500
+    return jsonify({
+        'success': True,
+        'settings': db.get_payroll_settings(),
+        'message': 'Overtime limit saved.',
+    })
+
+
 @app.route('/api/settings/payroll/overtime-rules', methods=['POST'])
 def api_save_overtime_premium_rule():
     data = request.get_json(silent=True) or {}
@@ -4204,6 +4360,35 @@ def api_manage_overtime_premium_rule(day_type):
     if not success:
         return jsonify({'success': False, 'error': 'Overtime premium rule not found.'}), 404
     return jsonify({'success': True, 'rules': db.get_overtime_premium_rules(), 'message': message})
+
+
+@app.route('/api/settings/payroll/overtime-holiday-rules', methods=['GET'])
+def api_get_overtime_holiday_premium_rules():
+    return jsonify(db.get_overtime_holiday_premium_rules())
+
+
+@app.route('/api/settings/payroll/overtime-holiday-rules/<int:holiday_id>', methods=['PUT', 'DELETE'])
+def api_manage_overtime_holiday_premium_rule(holiday_id):
+    if request.method == 'DELETE':
+        success = db.set_company_holiday_overtime_premium(holiday_id, None)
+        message = 'Holiday now uses the default public holiday premium.'
+    else:
+        data = request.get_json(silent=True) or {}
+        try:
+            premium_percent = float(data.get('premium_percent'))
+        except (TypeError, ValueError, OverflowError):
+            return jsonify({'success': False, 'error': 'Premium must be a number between 0 and 1000.'}), 400
+        if not 0 <= premium_percent <= 1000:
+            return jsonify({'success': False, 'error': 'Premium must be between 0 and 1000 percent.'}), 400
+        success = db.set_company_holiday_overtime_premium(holiday_id, premium_percent)
+        message = 'Holiday overtime premium saved.'
+    if not success:
+        return jsonify({'success': False, 'error': 'Holiday not found or premium could not be saved.'}), 404
+    return jsonify({
+        'success': True,
+        'rules': db.get_overtime_holiday_premium_rules(),
+        'message': message,
+    })
 
 
 @app.route('/api/settings/branch', methods=['GET'])

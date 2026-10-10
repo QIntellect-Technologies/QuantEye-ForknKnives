@@ -59,17 +59,16 @@ def init_db():
             leave_type_columns = {row[1] for row in cursor.execute("PRAGMA table_info(leave_types)").fetchall()}
             if 'allowance_months' not in leave_type_columns:
                 cursor.execute("ALTER TABLE leave_types ADD COLUMN allowance_months INTEGER NOT NULL DEFAULT 12")
-                cursor.execute("""
+                cursor.execute('''
                     UPDATE leave_types
                     SET allowance_months = CASE allowance_period
                         WHEN 'monthly' THEN 1
+                        WHEN 'quarterly' THEN 3
                         WHEN 'half_yearly' THEN 6
                         ELSE 12
                     END
-                """)
-                conn.commit()
+                ''')
 
-            leave_type_columns = {row[1] for row in cursor.execute("PRAGMA table_info(leave_types)").fetchall()}
             for column, column_type in [
                 ('half_leave_enabled', 'INTEGER NOT NULL DEFAULT 0'),
                 ('half_leave_mode', "TEXT NOT NULL DEFAULT 'separate'"),
@@ -81,13 +80,6 @@ def init_db():
                 if column not in leave_type_columns:
                     cursor.execute(f"ALTER TABLE leave_types ADD COLUMN {column} {column_type}")
             conn.commit()
-
-            try:
-                cursor.execute("SELECT end_date FROM company_holidays LIMIT 1")
-            except sqlite3.OperationalError:
-                cursor.execute("ALTER TABLE company_holidays ADD COLUMN end_date DATE")
-                cursor.execute("UPDATE company_holidays SET end_date = holiday_date")
-                conn.commit()
 
             # Face embeddings are required by enrollment and indexed below.
             cursor.execute('''
@@ -236,9 +228,17 @@ def init_db():
                     end_date DATE,
                     description TEXT,
                     is_recurring INTEGER DEFAULT 0,
+                    overtime_premium_percent REAL,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             ''')
+            company_holiday_columns = {row[1] for row in cursor.execute("PRAGMA table_info(company_holidays)").fetchall()}
+            if 'end_date' not in company_holiday_columns:
+                cursor.execute("ALTER TABLE company_holidays ADD COLUMN end_date DATE")
+                cursor.execute("UPDATE company_holidays SET end_date = holiday_date")
+            if 'overtime_premium_percent' not in company_holiday_columns:
+                cursor.execute("ALTER TABLE company_holidays ADD COLUMN overtime_premium_percent REAL")
+            conn.commit()
 
             # Employee leave balances table
             cursor.execute('''
@@ -434,6 +434,8 @@ def init_db():
                     non_working_day_ot_premium_percent REAL NOT NULL DEFAULT 0,
                     holiday_ot_premium_active INTEGER NOT NULL DEFAULT 0,
                     non_working_day_ot_premium_active INTEGER NOT NULL DEFAULT 0,
+                    overtime_max_hours REAL NOT NULL DEFAULT 0,
+                    overtime_max_period TEXT NOT NULL DEFAULT 'day',
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             ''')
@@ -447,6 +449,8 @@ def init_db():
                 ("non_working_day_ot_premium_percent", "REAL NOT NULL DEFAULT 0"),
                 ("holiday_ot_premium_active", "INTEGER NOT NULL DEFAULT 0"),
                 ("non_working_day_ot_premium_active", "INTEGER NOT NULL DEFAULT 0"),
+                ("overtime_max_hours", "REAL NOT NULL DEFAULT 0"),
+                ("overtime_max_period", "TEXT NOT NULL DEFAULT 'day'"),
             ]:
                 if column not in payroll_setting_columns:
                     cursor.execute(f"ALTER TABLE payroll_settings ADD COLUMN {column} {column_type}")
@@ -457,6 +461,59 @@ def init_db():
             cursor.execute("INSERT OR IGNORE INTO payroll_settings (id, deduct_unpaid_leave) VALUES (1, 0)")
             cursor.execute("UPDATE payroll_settings SET half_leave_quota_mode = 'category' WHERE half_leave_quota_mode = 'separate'")
             cursor.execute("UPDATE payroll_settings SET half_leave_quota_mode = 'monthly_convert' WHERE half_leave_quota_mode = 'convert'")
+
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS payroll_scoped_rules (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    policy_type TEXT NOT NULL CHECK(policy_type IN ('half_leave_quota', 'overtime_premium', 'overtime_limit')),
+                    scope_type TEXT NOT NULL CHECK(scope_type IN ('department', 'employee')),
+                    scope_id INTEGER NOT NULL,
+                    day_type TEXT NOT NULL DEFAULT '',
+                    half_leave_quota_mode TEXT,
+                    half_leaves_per_quota_day INTEGER,
+                    overtime_premium_percent REAL,
+                    overtime_max_hours REAL,
+                    overtime_max_period TEXT,
+                    active INTEGER NOT NULL DEFAULT 1 CHECK(active IN (0, 1)),
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(policy_type, scope_type, scope_id, day_type)
+                )
+            ''')
+            
+            payroll_rules_columns = {row[1] for row in cursor.execute("PRAGMA table_info(payroll_scoped_rules)")}
+            if 'overtime_max_hours' not in payroll_rules_columns:
+                cursor.execute("ALTER TABLE payroll_scoped_rules RENAME TO payroll_scoped_rules_legacy")
+                cursor.execute('''
+                    CREATE TABLE payroll_scoped_rules (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        policy_type TEXT NOT NULL CHECK(policy_type IN ('half_leave_quota', 'overtime_premium', 'overtime_limit')),
+                        scope_type TEXT NOT NULL CHECK(scope_type IN ('department', 'employee')),
+                        scope_id INTEGER NOT NULL,
+                        day_type TEXT NOT NULL DEFAULT '',
+                        half_leave_quota_mode TEXT,
+                        half_leaves_per_quota_day INTEGER,
+                        overtime_premium_percent REAL,
+                        overtime_max_hours REAL,
+                        overtime_max_period TEXT,
+                        active INTEGER NOT NULL DEFAULT 1 CHECK(active IN (0, 1)),
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE(policy_type, scope_type, scope_id, day_type)
+                    )
+                ''')
+                cursor.execute('''
+                    INSERT INTO payroll_scoped_rules (
+                        id, policy_type, scope_type, scope_id, day_type,
+                        half_leave_quota_mode, half_leaves_per_quota_day,
+                        overtime_premium_percent, active, created_at, updated_at
+                    )
+                    SELECT id, policy_type, scope_type, scope_id, day_type,
+                           half_leave_quota_mode, half_leaves_per_quota_day,
+                           overtime_premium_percent, active, created_at, updated_at
+                    FROM payroll_scoped_rules_legacy
+                ''')
+                cursor.execute("DROP TABLE payroll_scoped_rules_legacy")
 
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS special_date_overrides (
@@ -1214,6 +1271,47 @@ def _resolve_calendar_override(
     )
 
 
+def _get_company_holiday_for_date(cursor: sqlite3.Cursor, overtime_date: str) -> Optional[Dict[str, Any]]:
+    """Find the company holiday covering a date, including recurring holidays."""
+    date_key = overtime_date[5:]
+    cursor.execute("SELECT * FROM company_holidays ORDER BY holiday_date, id")
+    for row in cursor.fetchall():
+        holiday = dict(row)
+        holiday_start = str(holiday.get('holiday_date') or '')
+        holiday_end = str(holiday.get('end_date') or holiday_start)
+        if holiday_start <= overtime_date <= holiday_end:
+            return holiday
+        if holiday.get('is_recurring'):
+            start_key, end_key = holiday_start[5:], holiday_end[5:]
+            recurring_match = (
+                start_key <= date_key <= end_key
+                if start_key <= end_key
+                else date_key >= start_key or date_key <= end_key
+            )
+            if recurring_match:
+                return holiday
+    return None
+
+
+def _get_overtime_premium_percent(
+    cursor: sqlite3.Cursor,
+    overtime_date: str,
+    day_type: str,
+    settings: Optional[Any],
+    holiday: Optional[Dict[str, Any]] = None,
+) -> float:
+    """Return a holiday override or the configured day-type premium fallback."""
+    if day_type == 'holiday':
+        holiday = _get_company_holiday_for_date(cursor, overtime_date)
+        if holiday and holiday.get('overtime_premium_percent') is not None:
+            return float(holiday['overtime_premium_percent'])
+        if settings and settings['holiday_ot_premium_active']:
+            return float(settings['holiday_ot_premium_percent'] or 0.0)
+    elif day_type == 'non_working_day' and settings and settings['non_working_day_ot_premium_active']:
+        return float(settings['non_working_day_ot_premium_percent'] or 0.0)
+    return 0.0
+
+
 def _get_overtime_day_type(cursor: sqlite3.Cursor, user_id: int, overtime_date: str) -> str:
     """Classify overtime by its effective shift schedule and calendar exceptions."""
     try:
@@ -1254,22 +1352,8 @@ def _get_overtime_day_type(cursor: sqlite3.Cursor, user_id: int, overtime_date: 
         if override_type == 'off_day':
             return 'non_working_day'
 
-        cursor.execute("SELECT holiday_date, end_date, is_recurring FROM company_holidays")
-        date_key = overtime_date[5:]
-        for holiday in cursor.fetchall():
-            holiday_start = str(holiday['holiday_date'])
-            holiday_end = str(holiday['end_date'] or holiday_start)
-            if holiday_start <= overtime_date <= holiday_end:
-                return 'holiday'
-            if holiday['is_recurring']:
-                start_key, end_key = holiday_start[5:], holiday_end[5:]
-                recurring_match = (
-                    start_key <= date_key <= end_key
-                    if start_key <= end_key
-                    else date_key >= start_key or date_key <= end_key
-                )
-                if recurring_match:
-                    return 'holiday'
+        if _get_company_holiday_for_date(cursor, overtime_date):
+            return 'holiday'
 
         working_days_set = set(_normalize_shift_working_days(working_days))
         return 'regular' if work_date.weekday() in working_days_set else 'non_working_day'
@@ -1561,6 +1645,12 @@ def _record_automatic_checkout_overtime(
         (user_id, actual_date),
     )
     existing = cursor.fetchone()
+    limit_status = _get_overtime_limit_status_for_cursor(
+        cursor, user_id, actual_date, overtime_hours,
+        exclude_id=existing[0] if existing else None,
+    )
+    if limit_status.get('exceeded'):
+        reason += limit_status.get('review_note', '')
     if existing:
         if str(existing[1] or 'pending').lower() == 'pending' and str(existing[2] or '').startswith('Automatic camera checkout'):
             cursor.execute(
@@ -3346,6 +3436,41 @@ def get_company_holidays(year: Optional[int] = None) -> List[Dict]:
         return []
 
 
+def get_company_holiday_in_range(start_date: str, end_date: str) -> Optional[Dict]:
+    """Return the first company holiday that overlaps a leave date range."""
+    try:
+        range_start = datetime.strptime(start_date, '%Y-%m-%d').date()
+        range_end = datetime.strptime(end_date, '%Y-%m-%d').date()
+        if range_end < range_start:
+            return None
+
+        holidays = get_company_holidays()
+        current_date = range_start
+        while current_date <= range_end:
+            current_iso = current_date.isoformat()
+            current_month_day = current_iso[5:]
+            for holiday in holidays:
+                holiday_start = str(holiday.get('holiday_date') or '')
+                holiday_end = str(holiday.get('end_date') or holiday_start)
+                if holiday.get('is_recurring'):
+                    start_month_day = holiday_start[5:]
+                    end_month_day = holiday_end[5:]
+                    matches = (
+                        start_month_day <= current_month_day <= end_month_day
+                        if start_month_day <= end_month_day
+                        else current_month_day >= start_month_day or current_month_day <= end_month_day
+                    )
+                else:
+                    matches = holiday_start <= current_iso <= holiday_end
+                if matches:
+                    return {**holiday, 'matched_date': current_iso}
+            current_date += timedelta(days=1)
+        return None
+    except (TypeError, ValueError) as e:
+        logger.error(f"Invalid leave date range for holiday check: {e}")
+        return None
+
+
 def add_company_holiday(name: str, holiday_date: str, end_date: str = None, description: str = '', is_recurring: int = 0) -> Optional[int]:
     """Add a new company holiday."""
     try:
@@ -3665,8 +3790,17 @@ def check_leave_quota(
                 org_policy = cursor.execute(
                     "SELECT half_leave_quota_mode, half_leaves_per_quota_day FROM payroll_settings WHERE id = 1"
                 ).fetchone()
-                policy_mode = str(org_policy['half_leave_quota_mode'] if org_policy else 'category').lower()
-                monthly_threshold = max(1, int(org_policy['half_leaves_per_quota_day'] or 2)) if org_policy else 2
+                scoped_policy = _get_scoped_payroll_rule(cursor, 'half_leave_quota', user_id)
+                policy_mode = str(
+                    scoped_policy['half_leave_quota_mode'] if scoped_policy
+                    else org_policy['half_leave_quota_mode'] if org_policy
+                    else 'category'
+                ).lower()
+                monthly_threshold = max(1, int(
+                    scoped_policy['half_leaves_per_quota_day'] if scoped_policy
+                    else org_policy['half_leaves_per_quota_day'] if org_policy
+                    else 2
+                ))
                 if policy_mode in ('monthly_cap', 'monthly_convert'):
                     month_start = reference_date.date().replace(day=1)
                     if month_start.month == 12:
@@ -3986,15 +4120,14 @@ def get_overtime_rate_preview(user_id: int, overtime_date: str) -> Optional[Dict
                        holiday_ot_premium_active, non_working_day_ot_premium_active
                 FROM payroll_settings WHERE id = 1
             ''').fetchone()
-            premium_percent = 0.0
-            if settings and day_type == 'holiday' and settings['holiday_ot_premium_active']:
-                premium_percent = float(settings['holiday_ot_premium_percent'] or 0.0)
-            elif settings and day_type == 'non_working_day' and settings['non_working_day_ot_premium_active']:
-                premium_percent = float(settings['non_working_day_ot_premium_percent'] or 0.0)
+            holiday = _get_company_holiday_for_date(cursor, overtime_date) if day_type == 'holiday' else None
+            premium_percent = _get_overtime_premium_percent(cursor, overtime_date, day_type, settings, holiday)
             return {
                 'user_id': user_id,
                 'ot_date': overtime_date,
                 'day_type': day_type,
+                'holiday_id': holiday.get('id') if holiday else None,
+                'holiday_name': holiday.get('name') if holiday else None,
                 'base_rate': base_rate,
                 'premium_percent': premium_percent,
                 'effective_rate': round(base_rate * (1 + premium_percent / 100), 2),
@@ -4050,18 +4183,19 @@ def get_overtime(user_id: Optional[int] = None, status: Optional[str] = None,
             settings_row = cursor.execute(
                 "SELECT holiday_ot_premium_percent, non_working_day_ot_premium_percent, holiday_ot_premium_active, non_working_day_ot_premium_active FROM payroll_settings WHERE id = 1"
             ).fetchone()
-            holiday_premium = float(settings_row['holiday_ot_premium_percent'] or 0) if settings_row and settings_row['holiday_ot_premium_active'] else 0.0
-            non_working_premium = float(settings_row['non_working_day_ot_premium_percent'] or 0) if settings_row and settings_row['non_working_day_ot_premium_active'] else 0.0
             records = []
             for r in overtime_rows:
                 d = dict(r)
                 hours = float(d.get('hours') or 0.0)
                 base_rate = float(d.get('ot_rate') or 0.0)
                 day_type = _get_overtime_day_type(cursor, int(d['user_id']), str(d['ot_date']))
-                premium = holiday_premium if day_type == 'holiday' else non_working_premium if day_type == 'non_working_day' else 0.0
+                holiday = _get_company_holiday_for_date(cursor, str(d['ot_date'])) if day_type == 'holiday' else None
+                premium = _get_overtime_premium_percent(cursor, str(d['ot_date']), day_type, settings_row, holiday)
                 effective_rate = round(base_rate * (1 + premium / 100), 2)
                 d['base_ot_rate'] = base_rate
                 d['ot_day_type'] = day_type
+                d['holiday_id'] = holiday.get('id') if holiday else None
+                d['holiday_name'] = holiday.get('name') if holiday else None
                 d['ot_premium_percent'] = premium
                 d['ot_rate'] = effective_rate
                 d['ot_amount'] = round(hours * effective_rate, 2)
@@ -4370,7 +4504,297 @@ def get_payroll_settings() -> Dict[str, Any]:
             'non_working_day_ot_premium_percent': 0.0,
             'holiday_ot_premium_active': 0,
             'non_working_day_ot_premium_active': 0,
+            'overtime_max_hours': 0.0,
+            'overtime_max_period': 'day',
         }
+
+
+def get_payroll_scope_options() -> Dict[str, List[Dict[str, Any]]]:
+    """Return active departments and employees for scoped payroll rules."""
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.row_factory = sqlite3.Row
+            departments = [dict(row) for row in conn.execute(
+                "SELECT id, name FROM departments WHERE active = 1 ORDER BY name COLLATE NOCASE"
+            ).fetchall()]
+            employees = [dict(row) for row in conn.execute(
+                "SELECT id, name, COALESCE(department, '') AS department FROM users WHERE active = 1 ORDER BY name COLLATE NOCASE"
+            ).fetchall()]
+            return {'departments': departments, 'employees': employees}
+    except Exception as e:
+        logger.error(f"Failed to load payroll rule scope options: {e}")
+        return {'departments': [], 'employees': []}
+
+
+def get_payroll_scoped_rules() -> List[Dict[str, Any]]:
+    """Return scoped payroll rules with readable department/employee names."""
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute('''
+                SELECT r.*,
+                       d.name AS department_name,
+                       u.name AS employee_name
+                FROM payroll_scoped_rules r
+                LEFT JOIN departments d ON r.scope_type = 'department' AND d.id = r.scope_id
+                LEFT JOIN users u ON r.scope_type = 'employee' AND u.id = r.scope_id
+                WHERE r.active = 1
+                ORDER BY r.policy_type, r.scope_type, department_name COLLATE NOCASE, employee_name COLLATE NOCASE, r.day_type
+            ''').fetchall()
+            return [dict(row) for row in rows]
+    except Exception as e:
+        logger.error(f"Failed to load scoped payroll rules: {e}")
+        return []
+
+
+def save_scoped_half_leave_rule(scope_type: str, scope_id: int, quota_mode: str, monthly_count: int) -> bool:
+    scope = str(scope_type or '').strip().lower()
+    mode = str(quota_mode or '').strip().lower()
+    if scope not in ('department', 'employee') or mode not in ('category', 'monthly_cap', 'monthly_convert'):
+        return False
+    try:
+        target_id = int(scope_id)
+        count = int(monthly_count)
+    except (TypeError, ValueError, OverflowError):
+        return False
+    if target_id <= 0 or count < 1:
+        return False
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.execute('''
+                INSERT INTO payroll_scoped_rules (
+                    policy_type, scope_type, scope_id, day_type, half_leave_quota_mode,
+                    half_leaves_per_quota_day, active, updated_at
+                ) VALUES ('half_leave_quota', ?, ?, '', ?, ?, 1, CURRENT_TIMESTAMP)
+                ON CONFLICT(policy_type, scope_type, scope_id, day_type) DO UPDATE SET
+                    half_leave_quota_mode = excluded.half_leave_quota_mode,
+                    half_leaves_per_quota_day = excluded.half_leaves_per_quota_day,
+                    active = 1,
+                    updated_at = CURRENT_TIMESTAMP
+            ''', (scope, target_id, mode, count))
+            conn.commit()
+        return True
+    except Exception as e:
+        logger.error(f"Failed to save scoped half-leave rule: {e}")
+        return False
+
+def save_scoped_overtime_limit_rule(scope_type: str, scope_id: int, max_hours: float, period: str) -> bool:
+    scope = str(scope_type or '').strip().lower()
+    p = str(period or '').strip().lower()
+    if scope not in ('department', 'employee') or p not in ('day', 'week', 'month', 'per_entry'):
+        return False
+    try:
+        target_id = int(scope_id)
+        max_h = float(max_hours)
+    except (TypeError, ValueError, OverflowError):
+        return False
+    if target_id <= 0 or max_h <= 0:
+        return False
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.execute('''
+                INSERT INTO payroll_scoped_rules (
+                    policy_type, scope_type, scope_id, day_type, overtime_max_hours,
+                    overtime_max_period, active, updated_at
+                ) VALUES ('overtime_limit', ?, ?, '', ?, ?, 1, CURRENT_TIMESTAMP)
+                ON CONFLICT(policy_type, scope_type, scope_id, day_type) DO UPDATE SET
+                    overtime_max_hours = excluded.overtime_max_hours,
+                    overtime_max_period = excluded.overtime_max_period,
+                    active = 1,
+                    updated_at = CURRENT_TIMESTAMP
+            ''', (scope, target_id, max_h, p))
+            conn.commit()
+            return True
+    except Exception as e:
+        logger.error(f"Failed to save scoped overtime limit rule: {e}")
+        return False
+
+
+def save_scoped_overtime_premium_rule(scope_type: str, scope_id: int, day_type: str, premium_percent: float) -> bool:
+    scope = str(scope_type or '').strip().lower()
+    kind = str(day_type or '').strip().lower()
+    if scope not in ('department', 'employee') or kind not in ('holiday', 'non_working_day'):
+        return False
+    try:
+        target_id = int(scope_id)
+        premium = float(premium_percent)
+    except (TypeError, ValueError, OverflowError):
+        return False
+    if target_id <= 0 or not 0 <= premium <= 1000:
+        return False
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.execute('''
+                INSERT INTO payroll_scoped_rules (
+                    policy_type, scope_type, scope_id, day_type,
+                    overtime_premium_percent, active, updated_at
+                ) VALUES ('overtime_premium', ?, ?, ?, ?, 1, CURRENT_TIMESTAMP)
+                ON CONFLICT(policy_type, scope_type, scope_id, day_type) DO UPDATE SET
+                    overtime_premium_percent = excluded.overtime_premium_percent,
+                    active = 1,
+                    updated_at = CURRENT_TIMESTAMP
+            ''', (scope, target_id, kind, premium))
+            conn.commit()
+        return True
+    except Exception as e:
+        logger.error(f"Failed to save scoped overtime premium rule: {e}")
+        return False
+
+
+def delete_payroll_scoped_rule(rule_id: int) -> bool:
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            cursor = conn.execute('DELETE FROM payroll_scoped_rules WHERE id = ?', (int(rule_id),))
+            conn.commit()
+            return cursor.rowcount > 0
+    except (TypeError, ValueError, OverflowError):
+        return False
+    except Exception as e:
+        logger.error(f"Failed to delete scoped payroll rule: {e}")
+        return False
+
+
+def _get_scoped_payroll_rule(
+    cursor: sqlite3.Cursor,
+    policy_type: str,
+    user_id: Optional[int],
+    day_type: str = '',
+) -> Optional[Dict[str, Any]]:
+    if not user_id:
+        return None
+    cursor.execute("SELECT department FROM users WHERE id = ?", (user_id,))
+    user = cursor.fetchone()
+    department_name = ''
+    if user:
+        dept_val = user['department'] if hasattr(user, 'keys') else user[0]
+        department_name = str(dept_val or '').strip()
+    department_id = None
+    if department_name:
+        cursor.execute("SELECT id FROM departments WHERE LOWER(TRIM(name)) = LOWER(TRIM(?)) LIMIT 1", (department_name,))
+        department = cursor.fetchone()
+        if department:
+            department_id = int(department['id'] if hasattr(department, 'keys') else department[0])
+    conditions = ["(scope_type = 'employee' AND scope_id = ?)"]
+    rule_day_type = day_type if policy_type == 'overtime_premium' else ''
+    params: List[Any] = [policy_type, rule_day_type, int(user_id)]
+    if department_id is not None:
+        conditions.append("(scope_type = 'department' AND scope_id = ?)")
+        params.append(department_id)
+    query = f'''
+        SELECT * FROM payroll_scoped_rules
+        WHERE policy_type = ? AND day_type = ? AND active = 1
+          AND ({' OR '.join(conditions)})
+        ORDER BY CASE scope_type WHEN 'employee' THEN 0 ELSE 1 END
+        LIMIT 1
+    '''
+    cursor.execute(query, params)
+    row = cursor.fetchone()
+    if not row:
+        return None
+    if hasattr(row, 'keys'):
+        return dict(row)
+    columns = [desc[0] for desc in cursor.description]
+    return dict(zip(columns, row))
+
+
+def update_overtime_limit_settings(max_hours: float, period: str) -> bool:
+    """Save the organization-wide overtime review limit."""
+    try:
+        hours = float(max_hours)
+    except (TypeError, ValueError, OverflowError):
+        return False
+    scope = str(period or '').strip().lower()
+    if not 0 <= hours <= 744 or scope not in ('per_entry', 'day', 'week', 'month'):
+        return False
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.execute(
+                "UPDATE payroll_settings SET overtime_max_hours = ?, overtime_max_period = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1",
+                (hours, scope),
+            )
+            conn.commit()
+        return True
+    except Exception as e:
+        logger.error(f"Failed to update overtime limit settings: {e}")
+        return False
+
+
+def _get_overtime_limit_status_for_cursor(
+    cursor: sqlite3.Cursor,
+    user_id: int,
+    ot_date: str,
+    requested_hours: float,
+    exclude_id: Optional[int] = None,
+) -> Dict[str, Any]:
+    rule = _get_scoped_payroll_rule(cursor, 'overtime_limit', user_id)
+    if rule and rule.get('overtime_max_hours') is not None and rule.get('overtime_max_period') is not None:
+        maximum = float(rule['overtime_max_hours'])
+        period = str(rule['overtime_max_period']).lower()
+    else:
+        settings = cursor.execute(
+            "SELECT overtime_max_hours, overtime_max_period FROM payroll_settings WHERE id = 1"
+        ).fetchone()
+        maximum = float(settings[0] or 0) if settings else 0.0
+        period = str(settings[1] or 'day').lower() if settings else 'day'
+    if maximum <= 0:
+        return {'enabled': False, 'exceeded': False, 'maximum_hours': 0.0, 'period': period, 'current_hours': 0.0}
+
+    if period == 'per_entry':
+        current_hours = 0.0
+    else:
+        overtime_day = datetime.strptime(ot_date, '%Y-%m-%d').date()
+        if period == 'week':
+            period_start = overtime_day - timedelta(days=overtime_day.weekday())
+            period_end = period_start + timedelta(days=6)
+        elif period == 'month':
+            period_start = overtime_day.replace(day=1)
+            if overtime_day.month == 12:
+                period_end = overtime_day.replace(year=overtime_day.year + 1, month=1, day=1) - timedelta(days=1)
+            else:
+                period_end = overtime_day.replace(month=overtime_day.month + 1, day=1) - timedelta(days=1)
+        else:
+            period_start = overtime_day
+            period_end = overtime_day
+        query = '''
+            SELECT COALESCE(SUM(hours), 0)
+            FROM overtime
+            WHERE user_id = ? AND ot_date >= ? AND ot_date <= ?
+              AND LOWER(COALESCE(status, 'pending')) != 'rejected'
+        '''
+        params: List[Any] = [user_id, period_start.isoformat(), period_end.isoformat()]
+        if exclude_id is not None:
+            query += ' AND id != ?'
+            params.append(exclude_id)
+        current_hours = float(cursor.execute(query, params).fetchone()[0] or 0)
+
+    total_hours = current_hours + float(requested_hours)
+    period_label = {
+        'per_entry': 'per OT entry',
+        'day': 'per day',
+        'week': 'per week',
+        'month': 'per calendar month',
+    }.get(period, f'per {period}')
+    review_note = (
+        f" [OT limit exceeded: {total_hours:.2f}/{maximum:g} hours {period_label}; admin review required]"
+        if total_hours > maximum + 1e-9 else ''
+    )
+    return {
+        'enabled': True,
+        'exceeded': total_hours > maximum + 1e-9,
+        'maximum_hours': maximum,
+        'period': period,
+        'period_label': period_label,
+        'current_hours': current_hours,
+        'requested_total_hours': total_hours,
+        'review_note': review_note,
+    }
+
+
+def get_overtime_limit_status(user_id: int, ot_date: str, requested_hours: float) -> Dict[str, Any]:
+    """Check whether adding OT exceeds the configured period limit for an employee."""
+    with sqlite3.connect(DB_PATH) as conn:
+        cursor = conn.cursor()
+        return _get_overtime_limit_status_for_cursor(cursor, user_id, ot_date, requested_hours)
 
 
 def update_payroll_settings(
@@ -4437,6 +4861,47 @@ def get_overtime_premium_rules() -> List[Dict[str, Any]]:
             'active': bool(settings.get('non_working_day_ot_premium_active')),
         },
     ]
+
+
+def get_overtime_holiday_premium_rules() -> List[Dict[str, Any]]:
+    """Return company holidays with an explicitly configured OT premium."""
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute('''
+                SELECT id, name, holiday_date, end_date, is_recurring, overtime_premium_percent
+                FROM company_holidays
+                WHERE overtime_premium_percent IS NOT NULL
+                ORDER BY holiday_date, name
+            ''').fetchall()
+            return [dict(row) for row in rows]
+    except Exception as e:
+        logger.error(f"Failed to load holiday overtime premium rules: {e}")
+        return []
+
+
+def set_company_holiday_overtime_premium(holiday_id: int, premium_percent: Optional[float]) -> bool:
+    """Set a holiday-specific OT premium, or clear it to use the global fallback."""
+    if premium_percent is not None:
+        try:
+            premium = float(premium_percent)
+        except (TypeError, ValueError, OverflowError):
+            return False
+        if not 0 <= premium <= 1000:
+            return False
+    else:
+        premium = None
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            cursor = conn.execute(
+                'UPDATE company_holidays SET overtime_premium_percent = ? WHERE id = ?',
+                (premium, int(holiday_id)),
+            )
+            conn.commit()
+            return cursor.rowcount > 0
+    except Exception as e:
+        logger.error(f"Failed to update holiday overtime premium: {e}")
+        return False
 
 
 def save_overtime_premium_rule(day_type: str, premium_percent: float) -> bool:
@@ -4779,9 +5244,6 @@ def calculate_monthly_payroll(payroll_month: str | int | None = None, month: Opt
     period_end = min(month_end, today)
     payroll_settings = get_payroll_settings()
     deduct_unpaid_leave = bool(payroll_settings.get('deduct_unpaid_leave', 0))
-    holiday_ot_premium = float(payroll_settings.get('holiday_ot_premium_percent') or 0.0) if payroll_settings.get('holiday_ot_premium_active') else 0.0
-    non_working_ot_premium = float(payroll_settings.get('non_working_day_ot_premium_percent') or 0.0) if payroll_settings.get('non_working_day_ot_premium_active') else 0.0
-
     with sqlite3.connect(DB_PATH) as conn:
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
@@ -4814,15 +5276,20 @@ def calculate_monthly_payroll(payroll_month: str | int | None = None, month: Opt
             GROUP BY user_id, ot_date
         ''', (month_start.isoformat(), month_end.isoformat()))
         approved_ot_rows = [dict(row) for row in cursor.fetchall()]
-        approved_ot_by_user: Dict[int, Dict[str, float]] = {}
+        approved_ot_by_user: Dict[int, List[Dict[str, Any]]] = {}
         for overtime_row in approved_ot_rows:
             overtime_user_id = int(overtime_row['user_id'])
-            day_type = _get_overtime_day_type(cursor, overtime_user_id, str(overtime_row['ot_date']))
-            categories = approved_ot_by_user.setdefault(
-                overtime_user_id,
-                {'regular': 0.0, 'non_working_day': 0.0, 'holiday': 0.0},
-            )
-            categories[day_type] += float(overtime_row['total_ot_hours'] or 0.0)
+            overtime_date = str(overtime_row['ot_date'])
+            day_type = _get_overtime_day_type(cursor, overtime_user_id, overtime_date)
+            holiday = _get_company_holiday_for_date(cursor, overtime_date) if day_type == 'holiday' else None
+            approved_ot_by_user.setdefault(overtime_user_id, []).append({
+                'ot_date': overtime_date,
+                'day_type': day_type,
+                'holiday_id': holiday.get('id') if holiday else None,
+                'holiday_name': holiday.get('name') if holiday else None,
+                'hours': float(overtime_row['total_ot_hours'] or 0.0),
+                'premium_percent': _get_overtime_premium_percent(cursor, overtime_date, day_type, payroll_settings, holiday),
+            })
 
         cursor.execute('''
             SELECT id, rule_basis, min_absent_days, max_absent_days, deduction_type, deduction_percent, fixed_amount
@@ -4905,10 +5372,8 @@ def calculate_monthly_payroll(payroll_month: str | int | None = None, month: Opt
         basic_salary = round(max(0.0, float(employee['basic_salary'] or 0)) * proration_factor, 2)
 
         # Apply calendar-based premiums to approved overtime hours.
-        overtime_hours_by_type = approved_ot_by_user.get(
-            employee_id, {'regular': 0.0, 'non_working_day': 0.0, 'holiday': 0.0}
-        )
-        ot_hours = round(sum(overtime_hours_by_type.values()), 2)
+        overtime_entries = approved_ot_by_user.get(employee_id, [])
+        ot_hours = round(sum(entry['hours'] for entry in overtime_entries), 2)
         configured_ot_rate = float(employee.get('ot_rate') or 0.0)
         if configured_ot_rate > 0.0:
             ot_rate = round(configured_ot_rate, 2)
@@ -4918,25 +5383,27 @@ def calculate_monthly_payroll(payroll_month: str | int | None = None, month: Opt
             ot_rate = 0.0
         overtime_breakdown = []
         overtime_amount = 0.0
-        premium_by_type = {
-            'regular': 0.0,
-            'non_working_day': non_working_ot_premium,
-            'holiday': holiday_ot_premium,
-        }
-        for day_type, category_hours in overtime_hours_by_type.items():
-            if category_hours <= 0:
+        for overtime_entry in overtime_entries:
+            entry_hours = float(overtime_entry['hours'] or 0.0)
+            if entry_hours <= 0:
                 continue
-            premium_percent = premium_by_type[day_type]
+            day_type = overtime_entry['day_type']
+            premium_percent = float(overtime_entry['premium_percent'] or 0.0)
             effective_rate = round(ot_rate * (1 + premium_percent / 100), 2)
-            category_amount = round(category_hours * effective_rate, 2)
+            category_amount = round(entry_hours * effective_rate, 2)
             overtime_amount += category_amount
-            overtime_breakdown.append({
+            breakdown_entry = {
                 'day_type': day_type,
-                'hours': round(category_hours, 2),
+                'date': overtime_entry['ot_date'],
+                'hours': round(entry_hours, 2),
                 'premium_percent': premium_percent,
                 'hourly_rate': effective_rate,
                 'amount': category_amount,
-            })
+            }
+            if overtime_entry.get('holiday_id') is not None:
+                breakdown_entry['holiday_id'] = overtime_entry['holiday_id']
+                breakdown_entry['holiday_name'] = overtime_entry['holiday_name']
+            overtime_breakdown.append(breakdown_entry)
         overtime_amount = round(overtime_amount, 2)
 
         # Allowances and Custom Fixed Deductions from salary_configs
