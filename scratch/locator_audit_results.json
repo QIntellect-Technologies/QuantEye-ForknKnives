@@ -1,0 +1,418 @@
+[
+  {
+    "module": "Room Radar",
+    "test": "API GET /api/locate/rooms returns all configured rooms",
+    "expected": "HTTP 200 with 3 active camera rooms",
+    "actual": "HTTP 200 with 3 rooms",
+    "status": "PASS",
+    "details": "Configured rooms: ['Corridor', 'AI ROOM', 'Downstairs']"
+  },
+  {
+    "module": "Room Radar",
+    "test": "Room payload schema & stream binding",
+    "expected": "Contains all fields: ['camera_id', 'room_name', 'camera_name', 'occupants', 'occupant_count', 'stream_url']",
+    "actual": "Contains fields: ['camera_id', 'camera_name', 'description', 'occupant_count', 'occupants', 'room_name', 'stream_url']",
+    "status": "PASS",
+    "details": "Stream endpoint: /api/stream/cam_8075"
+  },
+  {
+    "module": "Staff Locator",
+    "test": "API GET /api/locate/person returns all active personnel tracking",
+    "expected": "HTTP 200 with 38 staff members tracked",
+    "actual": "HTTP 200 with 38 staff members",
+    "status": "PASS",
+    "details": "Every active employee has an active tracking state"
+  },
+  {
+    "module": "Staff Locator",
+    "test": "API GET /api/locate/person?name=Imran filters matched employees",
+    "expected": "HTTP 200 containing Imran Khalid (ID #38)",
+    "actual": "HTTP 200 with 2 matches, found=True",
+    "status": "PASS",
+    "details": "Found: ['Imran Khalid', 'Asim Imran - Student']"
+  },
+  {
+    "module": "Staff Locator",
+    "test": "API GET /api/locate/person?user_id=38 returns exact individual profile",
+    "expected": "HTTP 200 with exactly 1 record for user #38",
+    "actual": "HTTP 200 with 1 records",
+    "status": "PASS",
+    "details": "Matched: Imran Khalid"
+  },
+  {
+    "module": "Staff Locator",
+    "test": "Search: Clean handling when no employee matches query",
+    "expected": "HTTP 200 with empty results list []",
+    "actual": "HTTP 200 with 0 results",
+    "status": "PASS",
+    "details": "Handles un-enrolled / non-existent names without crashing"
+  },
+  {
+    "module": "Presence Engine",
+    "test": "State Machine: Active room presence reflected in real time",
+    "expected": "status=='active' with status_label containing 'Sitting in Corridor'",
+    "actual": "status='active', label='\ud83d\udfe2 Sitting in Corridor'",
+    "status": "PASS",
+    "details": "Room: Corridor, Dwell: 1 min, Cam: DVR"
+  },
+  {
+    "module": "Room Radar",
+    "test": "Occupancy Sync: Room radar updates occupant count and lists occupant",
+    "expected": "Corridor room has occupant_count >= 1 with Imran Khalid listed",
+    "actual": "Corridor occupant_count=1, has_imran=True",
+    "status": "PASS",
+    "details": "Occupants in Corridor: ['Imran Khalid']"
+  },
+  {
+    "module": "Presence Engine",
+    "test": "Decay Transition: Status transitions to 'recent' after timeout (>120s)",
+    "expected": "status=='recent' with status_label containing 'Recently in Corridor'",
+    "actual": "status='recent', label='\ud83d\udfe1 Recently in Corridor'",
+    "status": "PASS",
+    "details": "Decay verified: elapsed > 120s"
+  },
+  {
+    "module": "Presence Engine",
+    "test": "Decay Transition: Status transitions to 'away' after long timeout (>600s)",
+    "expected": "status=='away' with status_label containing 'Away From Room'",
+    "actual": "status='away', label='\u26aa Away From Room'",
+    "status": "PASS",
+    "details": "Decay verified: elapsed > 600s"
+  },
+  {
+    "module": "Scan-Now API",
+    "test": "Validation: Reject scan for non-existent employee",
+    "expected": "HTTP 404 Not Found",
+    "actual": "HTTP 404 - {'message': 'Target employee not found', 'success': False}",
+    "status": "PASS",
+    "details": "Target existence validated before running vision models"
+  },
+  {
+    "module": "Scan-Now API",
+    "test": "Validation: Reject scan for employee without facial biometric enrollment",
+    "expected": "HTTP 400 Bad Request with 'No facial profile enrolled'",
+    "actual": "HTTP 400 - {'message': 'No facial profile enrolled for No Embedding User 1791448585', 'success': False}",
+    "status": "PASS",
+    "details": "Biometric profile required for optical face matching"
+  },
+  {
+    "module": "Scan-Now API",
+    "test": "Scan Execution: Query on-demand camera scan for enrolled staff member",
+    "expected": "HTTP 200 with success=True and all_cameras_scanned list",
+    "actual": "HTTP 200 with success=True, cameras=0",
+    "status": "PASS",
+    "details": "Scanned 0 camera streams, found=False"
+  },
+  {
+    "module": "Locator Persistence",
+    "test": "Database Persistence: Persist 5-minute room snapshot to locator_history",
+    "expected": "Function returns True",
+    "actual": "Returned: True",
+    "status": "PASS",
+    "details": "Persisted room snapshot into SQLite locator_history"
+  },
+  {
+    "module": "Locator History API",
+    "test": "API GET /api/locate/history returns persistent timeline entries",
+    "expected": "HTTP 200 with history length >= 1 matching room 'AI ROOM'",
+    "actual": "HTTP 200 with 1 records, room=AI ROOM",
+    "status": "PASS",
+    "details": "Recorded presence window: 2026-10-08 13:26:25 to 2026-10-08 13:36:25 (Confidence: 0.88)"
+  },
+  {
+    "module": "Locator History API",
+    "test": "Filter: Filter historical room records by room_name",
+    "expected": "HTTP 200 with all entries belonging to 'AI ROOM'",
+    "actual": "HTTP 200 with 5 records, match=True",
+    "status": "PASS",
+    "details": "All returned records belong to AI ROOM"
+  },
+  {
+    "module": "Locator Persistence",
+    "test": "Throttling: Prevent database bloat by suppressing snapshots within 300s",
+    "expected": "Returns False (throttled)",
+    "actual": "Returned: False",
+    "status": "PASS",
+    "details": "Snapshot correctly throttled within 5-minute interval"
+  },
+  {
+    "module": "Locator Persistence",
+    "test": "Cascade Cleanup: Deleting user purges their entries in locator_history automatically",
+    "expected": "loc_remaining == 0 and del_res is True",
+    "actual": "del_res=True, loc_remaining=0",
+    "status": "PASS",
+    "details": "Foreign key cascade on locator_history verified"
+  },
+  {
+    "module": "Database Integrity",
+    "test": "PRAGMA integrity_check",
+    "expected": "[('ok',)]",
+    "actual": "[('ok',)]",
+    "status": "PASS",
+    "details": "Database is physically intact"
+  },
+  {
+    "module": "Database Integrity",
+    "test": "PRAGMA foreign_key_check",
+    "expected": "[] (Zero foreign key violations)",
+    "actual": "[]",
+    "status": "PASS",
+    "details": "Zero foreign key violations across all tables"
+  },
+  {
+    "module": "Payroll V1",
+    "test": "Payroll calculation engine produces exact baseline for October 2026",
+    "expected": "Imran Khalid: basic_salary=250000.0, payable_days=4.0, net_salary=37037.04",
+    "actual": "Imran Khalid: basic_salary=250000.0, payable_days=4.0, net_salary=37037.04",
+    "status": "PASS",
+    "details": "Matched Rule: , Status: Finalized"
+  },
+  {
+    "module": "Leave & Holidays",
+    "test": "Leave APIs (leave-types, holidays, leaves, balances)",
+    "expected": "All return HTTP 200",
+    "actual": "Types: 200, Holidays: 200, Requests: 200, Balances: 200",
+    "status": "PASS",
+    "details": "Leave types count: 4"
+  },
+  {
+    "module": "Salary Structure",
+    "test": "Salary configuration directory & KPI summary APIs",
+    "expected": "HTTP 200 with 38 staff and positive total_basic",
+    "actual": "HTTP 200 (38 staff), HTTP 200 (total_basic: 3375000.0)",
+    "status": "PASS",
+    "details": "Salary Structure baseline 100% intact"
+  },
+  {
+    "module": "Enrollment Gate",
+    "test": "Staff enrollment security lock & route protection",
+    "expected": "HTTP 403 Forbidden when enrollment is locked",
+    "actual": "HTTP 403",
+    "status": "PASS",
+    "details": "Enrollment gate locked and verified"
+  },
+  {
+    "module": "Shift Management",
+    "test": "Shift configurations and employee assignments",
+    "expected": "HTTP 200 with active shifts configured",
+    "actual": "HTTP 200 with 2 shifts",
+    "status": "PASS",
+    "details": "Shifts: ['Morning Shift', 'Night Shift']"
+  },
+  {
+    "module": "Staff Management",
+    "test": "Staff directory list API",
+    "expected": "HTTP 200 with 38 users",
+    "actual": "HTTP 200 with 38 users",
+    "status": "PASS",
+    "details": "Staff directory completely intact"
+  },
+  {
+    "module": "Departments & Designations",
+    "test": "Departments & Designations API suite",
+    "expected": "Both return HTTP 200 with non-empty collections",
+    "actual": "Depts: 200 (10), Desigs: 200 (23)",
+    "status": "PASS",
+    "details": "Department-designation hierarchy intact"
+  },
+  {
+    "module": "Settings",
+    "test": "Branch settings API",
+    "expected": "HTTP 200 with branch_name configured",
+    "actual": "HTTP 200 with branch: QIntellect Technologies",
+    "status": "PASS",
+    "details": "Branch: QIntellect Technologies, City: Rahim Yar Khan"
+  },
+  {
+    "module": "Camera Management",
+    "test": "Camera feeds configuration API",
+    "expected": "HTTP 200 with active cameras",
+    "actual": "HTTP 200 with 3 cameras",
+    "status": "PASS",
+    "details": "Cameras: ['DVR', 'Local Web Cam', 'NVR']"
+  },
+  {
+    "module": "Attendance Reports",
+    "test": "Attendance detailed report API",
+    "expected": "HTTP 200 with report records",
+    "actual": "HTTP 200 with 38 records",
+    "status": "PASS",
+    "details": "Reports generation engine intact"
+  },
+  {
+    "module": "Dashboard",
+    "test": "Dashboard KPI stats API",
+    "expected": "HTTP 200 with total_users and present count",
+    "actual": "HTTP 200 with total_users=38",
+    "status": "PASS",
+    "details": "KPIs: {'absent_users': 38, 'avg_confidence': 0.5546602148182731, 'present_users': 0, 'recent_entries': [{'confidence': 0.42286568880081177, 'name': 'Imran Khalid', 'timestamp': '2026-10-07 17:10:53'}, {'confidence': 0.42624905705451965, 'name': 'Malaika Irshad', 'timestamp': '2026-10-07 10:34:05'}, {'confidence': 0.42022231221199036, 'name': 'Malaika Irshad', 'timestamp': '2026-10-07 10:32:42'}, {'confidence': 0.48052114248275757, 'name': 'Imran Khalid', 'timestamp': '2026-10-07 10:31:30'}, {'confidence': 0.4601846933364868, 'name': 'Imran Khalid', 'timestamp': '2026-10-03 08:58:15'}, {'confidence': 0.42059314250946045, 'name': 'Sir Qaisar Shahen', 'timestamp': '2026-10-02 16:01:43'}, {'confidence': 0.45876896381378174, 'name': 'Sir Umer - GS', 'timestamp': '2026-10-02 12:20:02'}, {'confidence': 0.4131890833377838, 'name': 'Ubaid', 'timestamp': '2026-10-02 10:03:23'}, {'confidence': 0.4812728464603424, 'name': 'Imran Khalid', 'timestamp': '2026-10-02 10:03:07'}, {'confidence': 0.6283495426177979, 'name': 'Ubaid', 'timestamp': '2026-10-02 10:03:04'}], 'timestamp': '2026-10-08T13:36:26.320085', 'today_attendance': 0, 'total_logs': 84, 'total_users': 38, 'unique_users_today': 0}"
+  },
+  {
+    "module": "API Suite",
+    "test": "GET /api/stats",
+    "expected": "HTTP 200",
+    "actual": "HTTP 200",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "module": "API Suite",
+    "test": "GET /api/users",
+    "expected": "HTTP 200",
+    "actual": "HTTP 200",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "module": "API Suite",
+    "test": "GET /api/departments",
+    "expected": "HTTP 200",
+    "actual": "HTTP 200",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "module": "API Suite",
+    "test": "GET /api/designations",
+    "expected": "HTTP 200",
+    "actual": "HTTP 200",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "module": "API Suite",
+    "test": "GET /api/shifts",
+    "expected": "HTTP 200",
+    "actual": "HTTP 200",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "module": "API Suite",
+    "test": "GET /api/cameras",
+    "expected": "HTTP 200",
+    "actual": "HTTP 200",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "module": "API Suite",
+    "test": "GET /api/settings/branch",
+    "expected": "HTTP 200",
+    "actual": "HTTP 200",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "module": "API Suite",
+    "test": "GET /api/payroll/rules",
+    "expected": "HTTP 200",
+    "actual": "HTTP 200",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "module": "API Suite",
+    "test": "GET /api/payroll/calendar",
+    "expected": "HTTP 200",
+    "actual": "HTTP 200",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "module": "API Suite",
+    "test": "GET /api/payroll/history",
+    "expected": "HTTP 200",
+    "actual": "HTTP 200",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "module": "API Suite",
+    "test": "GET /api/payroll?month=2026-10",
+    "expected": "HTTP 200",
+    "actual": "HTTP 200",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "module": "API Suite",
+    "test": "GET /api/reports/attendance?start_date=2026-10-01&end_date=2026-10-07",
+    "expected": "HTTP 200",
+    "actual": "HTTP 200",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "module": "API Suite",
+    "test": "GET /api/leave-types",
+    "expected": "HTTP 200",
+    "actual": "HTTP 200",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "module": "API Suite",
+    "test": "GET /api/leaves",
+    "expected": "HTTP 200",
+    "actual": "HTTP 200",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "module": "API Suite",
+    "test": "GET /api/leaves/balances?year=2026",
+    "expected": "HTTP 200",
+    "actual": "HTTP 200",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "module": "API Suite",
+    "test": "GET /api/holidays",
+    "expected": "HTTP 200",
+    "actual": "HTTP 200",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "module": "API Suite",
+    "test": "GET /api/salary",
+    "expected": "HTTP 200",
+    "actual": "HTTP 200",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "module": "API Suite",
+    "test": "GET /api/salary/summary",
+    "expected": "HTTP 200",
+    "actual": "HTTP 200",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "module": "API Suite",
+    "test": "GET /api/admin/status",
+    "expected": "HTTP 200",
+    "actual": "HTTP 200",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "module": "API Suite",
+    "test": "GET /api/locate/rooms",
+    "expected": "HTTP 200",
+    "actual": "HTTP 200",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "module": "API Suite",
+    "test": "GET /api/locate/person?name=Imran",
+    "expected": "HTTP 200",
+    "actual": "HTTP 200",
+    "status": "PASS",
+    "details": ""
+  }
+]

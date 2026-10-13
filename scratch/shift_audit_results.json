@@ -1,0 +1,222 @@
+[
+  {
+    "test_id": "SFT-01",
+    "action": "GET /api/shifts (List existing shifts)",
+    "expected": "HTTP 200, success=True, returns list of configured shifts",
+    "actual": "HTTP 200, count=2",
+    "passed": true,
+    "evidence": "Shifts returned: ['Morning Shift', 'Night Shift']",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "SFT-02",
+    "action": "POST /api/shifts (Create valid shift \"QA Audit Evening Shift 2026\")",
+    "expected": "HTTP 201 Created with integer shift_id",
+    "actual": "HTTP 201, shift_id=10, success=True",
+    "passed": true,
+    "evidence": "Response payload: {'message': \"Shift 'QA Audit Evening Shift 2026' created successfully\", 'shift_id': 10, 'success': True}",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "SFT-03",
+    "action": "Verify SQLite row persistence for created shift",
+    "expected": "Row found with exact start_time, end_time, grace_period_minutes",
+    "actual": "found=True, name=\"QA Audit Evening Shift 2026\"",
+    "passed": true,
+    "evidence": "SQLite row: {'id': 10, 'name': 'QA Audit Evening Shift 2026', 'start_time': '16:00', 'end_time': '00:00', 'grace_period_minutes': 20, 'active': 1, 'created_at': '2026-10-08 11:47:24', 'is_default': 0, 'working_days': '[0, 1, 2, 3, 4]'}",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "SFT-04",
+    "action": "POST /api/shifts with duplicate shift name",
+    "expected": "HTTP 400 Bad Request",
+    "actual": "HTTP 400: {'error': \"Shift 'QA Audit Evening Shift 2026' already exists or creation failed\"}",
+    "passed": true,
+    "evidence": "Response: {'error': \"Shift 'QA Audit Evening Shift 2026' already exists or creation failed\"}",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "SFT-05",
+    "action": "POST /api/shifts with empty shift name",
+    "expected": "HTTP 400 Bad Request",
+    "actual": "HTTP 400: {'error': 'Shift name is required'}",
+    "passed": true,
+    "evidence": "Response: {'error': 'Shift name is required'}",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "SFT-06",
+    "action": "POST /api/shifts with whitespace-only shift name",
+    "expected": "HTTP 400 Bad Request",
+    "actual": "HTTP 400: {'error': 'Shift name is required'}",
+    "passed": true,
+    "evidence": "Response: {'error': 'Shift name is required'}",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "SFT-07",
+    "action": "PUT /api/shifts/10 (Update shift configuration)",
+    "expected": "HTTP 200, success=True, SQLite row updated",
+    "actual": "HTTP 200, db_updated=True",
+    "passed": true,
+    "evidence": "Updated SQLite row: {'id': 10, 'name': 'QA Audit Evening Shift 2026 - Updated', 'start_time': '17:00', 'end_time': '01:00', 'grace_period_minutes': 30, 'active': 1, 'created_at': '2026-10-08 11:47:24', 'is_default': 0, 'working_days': '[0, 1, 2, 3, 4, 5]'}",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "SFT-08",
+    "action": "DELETE /api/shifts/1 (Attempt delete protected default shift)",
+    "expected": "HTTP 400 Bad Request (Cannot delete default Morning Shift)",
+    "actual": "HTTP 400: {'error': 'Cannot delete default Morning Shift'}",
+    "passed": true,
+    "evidence": "Protection response: {'error': 'Cannot delete default Morning Shift'}",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "SFT-09",
+    "action": "DELETE /api/shifts/10 (Delete custom audit shift)",
+    "expected": "HTTP 200, row deleted from SQLite",
+    "actual": "HTTP 200, row_exists=False",
+    "passed": true,
+    "evidence": "Shift deletion confirmed: True",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "SFT-10",
+    "action": "POST /api/users/38/assign-shift to Shift #3 (Night Shift)",
+    "expected": "HTTP 200, users.shift_id updated to 3 in SQLite",
+    "actual": "HTTP 200, current_shift_id=3",
+    "passed": true,
+    "evidence": "User 38 assigned shift: 3",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "SFT-11",
+    "action": "POST /api/users/38/assign-shift revert back to Shift #1",
+    "expected": "HTTP 200, users.shift_id reverted to 1",
+    "actual": "HTTP 200, current_shift_id=1",
+    "passed": true,
+    "evidence": "User 38 restored shift: 1",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "SFT-12",
+    "action": "POST /api/shifts/bulk-assign to User IDs [41, 46] with shift_id=3",
+    "expected": "HTTP 200, count=2, both users updated in SQLite",
+    "actual": "HTTP 200, count=2, db_shifts={41: 3, 46: 3}",
+    "passed": true,
+    "evidence": "Bulk assigned rows: {41: 3, 46: 3}",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "SFT-13",
+    "action": "Historical Shift Timeline Immutability across multiple effective dates",
+    "expected": "Date 2026-10-01 resolves to Morning Shift; Date 2026-10-05 resolves to Night Shift",
+    "actual": "day1_shift=\"Morning Shift\", day2_shift=\"Night Shift\"",
+    "passed": true,
+    "evidence": "Timeline resolution confirmed: Day 1 = Morning Shift, Day 2 = Night Shift",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "SFT-14",
+    "action": "Grace period status evaluation matrix (Start 08:00, Grace 15m)",
+    "expected": "07:59-08:15 = Present, 08:16-08:30 = Late",
+    "actual": "results={'07:59': 'present', '08:00': 'present', '08:10': 'present', '08:15': 'present', '08:16': 'late', '08:30': 'late'}",
+    "passed": true,
+    "evidence": "Evaluation matrix: {'07:59': 'present', '08:00': 'present', '08:10': 'present', '08:15': 'present', '08:16': 'late', '08:30': 'late'}",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "SFT-15",
+    "action": "Overnight cross-midnight shift window evaluation (22:00 - 06:00)",
+    "expected": "22:05=True, 02:00=True, 05:55=True, 12:00=False",
+    "actual": "22:05=True, 02:00=True, 05:55=True, 12:00=False",
+    "passed": true,
+    "evidence": "Overnight cross-midnight wrap-around calculations verified",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "SFT-16",
+    "action": "db.check_user_shift_allowed for User #38 with current time",
+    "expected": "Returns boolean allowed, reason string, shift info dict",
+    "actual": "allowed=False, reason=\"Attendance rejected: Outside 'Morning Shift' grace window (10:31 - 10:33)\", shift=\"Morning Shift\"",
+    "passed": true,
+    "evidence": "Shift check details: Attendance rejected: Outside 'Morning Shift' grace window (10:31 - 10:33)",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "SFT-17",
+    "action": "Shift scheduled workday calculation: Monday=Workday, Sunday=OffDay",
+    "expected": "Monday in [0,1,2,3,4,5] -> True; Sunday in [0,1,2,3,4,5] -> False",
+    "actual": "Monday=True, Sunday=False",
+    "passed": true,
+    "evidence": "Monday workday=True, Sunday workday=False",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "SFT-18",
+    "action": "Payroll Numerical Anchor Verification (Employee #38)",
+    "expected": "Basic 250k, Allowances 35k, Deductions 10k, OT 3605.76, Gross 288,605.76, Net 253,605.76",
+    "actual": "Gross=288605.76, Net=253605.76",
+    "passed": true,
+    "evidence": "Employee #38 anchor: Basic=250000.0, Net=253605.76",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "SFT-19",
+    "action": "POST /api/users/38/assign-shift with non-existent shift_id=999999",
+    "expected": "HTTP 400 Bad Request (Shift not found)",
+    "actual": "HTTP 400: {'error': 'User not found or shift assignment failed'}",
+    "passed": true,
+    "evidence": "Rejection response: {'error': 'User not found or shift assignment failed'}",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "SFT-20",
+    "action": "POST /api/users/999999/assign-shift for non-existent user_id=999999",
+    "expected": "HTTP 400 Bad Request (User not found)",
+    "actual": "HTTP 400: {'error': 'User not found or shift assignment failed'}",
+    "passed": true,
+    "evidence": "Rejection response: {'error': 'User not found or shift assignment failed'}",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "SFT-21",
+    "action": "POST /api/shifts/bulk-assign with missing shift_id",
+    "expected": "HTTP 400 Bad Request",
+    "actual": "HTTP 400: {'error': 'Shift ID is required'}",
+    "passed": true,
+    "evidence": "Response: {'error': 'Shift ID is required'}",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "SFT-22",
+    "action": "Database baseline counts & integrity checks after Shift audit",
+    "expected": "All 12 tables match pre-audit baseline, PRAGMA integrity_check=ok, PRAGMA foreign_key_check=0",
+    "actual": "counts_match=True, ic=ok, fk=0 violations",
+    "passed": true,
+    "evidence": "Post counts: {'users': 38, 'departments': 10, 'designations': 23, 'shifts': 2, 'attendance': 84, 'leave_requests': 1, 'overtime': 0, 'salary_configs': 37, 'payroll_records': 106, 'embeddings': 3872, 'branch_settings': 1, 'employee_shift_history': 38}",
+    "severity": null,
+    "affects": null
+  }
+]

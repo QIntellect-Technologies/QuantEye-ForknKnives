@@ -1,0 +1,312 @@
+[
+  {
+    "test_id": "DEP-01",
+    "action": "GET /api/departments (List all)",
+    "expected": "HTTP 200 with non-empty JSON list",
+    "actual": "HTTP 200, count=10",
+    "passed": true,
+    "evidence": "Fetched 10 departments. First: AI & Data Science",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "DEP-02",
+    "action": "GET /api/departments?active_only=true",
+    "expected": "HTTP 200, all returned items active==1",
+    "actual": "HTTP 200, count=10, all_active=True",
+    "passed": true,
+    "evidence": "Total active departments: 10",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "DEP-03",
+    "action": "POST /api/departments (Create \"QA Audit Automated Dept 2026\")",
+    "expected": "HTTP 201 with success=True and integer ID",
+    "actual": "HTTP 201, id=11, success=True",
+    "passed": true,
+    "evidence": "Response payload: {'id': 11, 'message': 'Department QA Audit Automated Dept 2026 created successfully', 'success': True}",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "DEP-04",
+    "action": "Verify SQLite row persistence for newly created department",
+    "expected": "Row exists with name=\"QA Audit Automated Dept 2026\", code=\"QAA\", active=1",
+    "actual": "Row found=True, name=\"QA Audit Automated Dept 2026\", active=1",
+    "passed": true,
+    "evidence": "SQLite row values: {'id': 11, 'name': 'QA Audit Automated Dept 2026', 'code': 'QAA', 'description': 'Temporary department created for production audit', 'active': 1, 'created_at': '2026-10-08 10:53:10'}",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "DEP-05",
+    "action": "POST /api/departments with empty name",
+    "expected": "HTTP 400 Bad Request",
+    "actual": "HTTP 400: {'error': 'Department name is required'}",
+    "passed": true,
+    "evidence": "Response: {'error': 'Department name is required'}",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "DEP-06",
+    "action": "POST /api/departments with duplicate name",
+    "expected": "HTTP 409 Conflict",
+    "actual": "HTTP 409: {'error': 'Department QA Audit Automated Dept 2026 already exists'}",
+    "passed": true,
+    "evidence": "Duplicate rejection response: {'error': 'Department QA Audit Automated Dept 2026 already exists'}",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "DEP-07",
+    "action": "PUT /api/departments/11 (Update details)",
+    "expected": "HTTP 200, success=True, SQLite row updated",
+    "actual": "HTTP 200, DB updated=True",
+    "passed": true,
+    "evidence": "Updated SQLite row: {'id': 11, 'name': 'QA Audit Automated Dept 2026 - Updated', 'code': 'QAA-UPD', 'description': 'Updated description during audit', 'active': 1, 'created_at': '2026-10-08 10:53:10'}",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "DEP-08",
+    "action": "PUT /api/departments/11 with empty name",
+    "expected": "HTTP 400 Bad Request",
+    "actual": "HTTP 400: {'error': 'Department name is required'}",
+    "passed": true,
+    "evidence": "Response: {'error': 'Department name is required'}",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "DEP-09",
+    "action": "DELETE /api/departments/11",
+    "expected": "HTTP 200, success=True, SQLite active set to 0 (soft-delete)",
+    "actual": "HTTP 200, row exists=True, active=0",
+    "passed": true,
+    "evidence": "Soft-delete confirmed: active=0",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "DEP-10",
+    "action": "GET /api/departments?active_only=true (Verify soft-deleted exclusion)",
+    "expected": "Soft-deleted department excluded from active list",
+    "actual": "Found in active_ids: False",
+    "passed": true,
+    "evidence": "Inactive ID 11 excluded from active list",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "DEP-11",
+    "action": "GET /api/departments?active_only=false (Verify soft-deleted inclusion in full list)",
+    "expected": "Soft-deleted department included in full list",
+    "actual": "Found in all_ids: True",
+    "passed": true,
+    "evidence": "ID 11 present in full list",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "DEP-12",
+    "action": "Department staff_count calculation accuracy",
+    "expected": "staff_count matches COUNT(*) in users table for each department",
+    "actual": "Counts match: True",
+    "passed": true,
+    "evidence": "Compared 11 departments against users table",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "DEP-13",
+    "action": "Department designation_count calculation accuracy",
+    "expected": "designation_count matches COUNT(*) in designations table",
+    "actual": "Counts match: True",
+    "passed": true,
+    "evidence": "Compared 11 departments against designations table",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "DEP-14",
+    "action": "Department availability for Staff Enrollment dropdown",
+    "expected": "Active departments available for enrollment options",
+    "actual": "Count=10, contains core depts=True",
+    "passed": true,
+    "evidence": "Available departments for enrollment: ['AI & Data Science', 'Academic & Training', 'Computer Science', 'Executive Management', 'FnK Operations']...",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "DES-01",
+    "action": "GET /api/designations (List all)",
+    "expected": "HTTP 200 with non-empty JSON list",
+    "actual": "HTTP 200, count=23",
+    "passed": true,
+    "evidence": "Fetched 23 designations. First: AI Engineer & Team Lead",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "DES-02",
+    "action": "GET /api/designations?department_id=1",
+    "expected": "HTTP 200, all records have department_id == 1",
+    "actual": "count=2, all_match=True",
+    "passed": true,
+    "evidence": "Titles: ['AI Engineer & Team Lead', 'Research Intern (AI/ML)']",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "DES-03",
+    "action": "GET /api/designations?department_name=AI & Data Science",
+    "expected": "HTTP 200, all records belong to specified department name",
+    "actual": "count=2, all_match=True",
+    "passed": true,
+    "evidence": "Titles: ['AI Engineer & Team Lead', 'Research Intern (AI/ML)']",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "DES-04",
+    "action": "POST /api/designations (Create \"QA Automation Lead Engineer 2026\" under dept_id=1)",
+    "expected": "HTTP 201 with success=True and integer ID",
+    "actual": "HTTP 201, id=24, success=True",
+    "passed": true,
+    "evidence": "Response payload: {'id': 24, 'message': 'Designation QA Automation Lead Engineer 2026 created successfully', 'success': True}",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "DES-05",
+    "action": "Verify SQLite row persistence for newly created designation",
+    "expected": "Row exists with department_id=1, title=\"QA Automation Lead Engineer 2026\", active=1",
+    "actual": "Row found=True, title=\"QA Automation Lead Engineer 2026\", active=1",
+    "passed": true,
+    "evidence": "SQLite row values: {'id': 24, 'department_id': 1, 'title': 'QA Automation Lead Engineer 2026', 'description': 'Temporary designation for production audit', 'active': 1, 'created_at': '2026-10-08 10:53:10'}",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "DES-06",
+    "action": "POST /api/designations with empty title",
+    "expected": "HTTP 400 Bad Request",
+    "actual": "HTTP 400: {'error': 'Department and designation title are required'}",
+    "passed": true,
+    "evidence": "Response: {'error': 'Department and designation title are required'}",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "DES-07",
+    "action": "POST /api/designations with missing department_id",
+    "expected": "HTTP 400 Bad Request",
+    "actual": "HTTP 400: {'error': 'Department and designation title are required'}",
+    "passed": true,
+    "evidence": "Response: {'error': 'Department and designation title are required'}",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "DES-08",
+    "action": "POST /api/designations with non-existent department_id=999999",
+    "expected": "Should reject or return error if FK enforced",
+    "actual": "HTTP 201: {'id': 25, 'message': 'Designation Ghost Desig created successfully', 'success': True}",
+    "passed": false,
+    "evidence": "Server response: {'id': 25, 'message': 'Designation Ghost Desig created successfully', 'success': True}, ghost row inserted: True",
+    "severity": "LOW",
+    "affects": "Foreign key validation on designation creation"
+  },
+  {
+    "test_id": "DES-09",
+    "action": "PUT /api/designations/24 (Update title & description)",
+    "expected": "HTTP 200, success=True, SQLite row updated",
+    "actual": "HTTP 200, DB updated=True",
+    "passed": true,
+    "evidence": "Updated SQLite row: {'id': 24, 'department_id': 1, 'title': 'QA Automation Lead Engineer 2026 - Updated', 'description': 'Updated description during audit', 'active': 1, 'created_at': '2026-10-08 10:53:10'}",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "DES-10",
+    "action": "PUT /api/designations/24 with empty title",
+    "expected": "HTTP 400 Bad Request",
+    "actual": "HTTP 400: {'error': 'Designation title is required'}",
+    "passed": true,
+    "evidence": "Response: {'error': 'Designation title is required'}",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "DES-11",
+    "action": "DELETE /api/designations/24",
+    "expected": "HTTP 200, success=True, SQLite active set to 0 (soft-delete)",
+    "actual": "HTTP 200, row exists=True, active=0",
+    "passed": true,
+    "evidence": "Soft-delete confirmed: active=0",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "DES-12",
+    "action": "GET /api/designations?active_only=true (Verify soft-deleted exclusion)",
+    "expected": "Soft-deleted designation excluded from active list",
+    "actual": "Found in active_d_ids: False",
+    "passed": true,
+    "evidence": "Inactive ID 24 excluded from active list",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "DES-13",
+    "action": "Designations cascading to Staff Enrollment by department_name",
+    "expected": "Returns active designations for selected department",
+    "actual": "Count=5, has_dev_roles=True",
+    "passed": true,
+    "evidence": "Cascaded designations: ['Backend Python Developer', 'DevOps & Cloud Engineer', 'Frontend React Developer', 'QA & Automation Engineer', 'Senior Full Stack Developer']",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "DES-14",
+    "action": "Designation orphan check in SQLite database",
+    "expected": "0 orphan designations (all reference existing departments)",
+    "actual": "Orphan count=0",
+    "passed": true,
+    "evidence": "Orphan records: []",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "BASE-01",
+    "action": "Database baseline counts identical before and after audit",
+    "expected": "All 10 table counts match baseline exactly (0 lingering audit records)",
+    "actual": "identical=True",
+    "passed": true,
+    "evidence": "Post counts: {'users': 38, 'departments': 10, 'designations': 23, 'shifts': 2, 'attendance': 84, 'leave_requests': 1, 'overtime': 0, 'salary_configs': 37, 'payroll_records': 106, 'embeddings': 3872}",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "BASE-02",
+    "action": "PRAGMA integrity_check after audit",
+    "expected": "ok",
+    "actual": "ok",
+    "passed": false,
+    "evidence": "Integrity check result: [<sqlite3.Row object at 0x000001BC9F160730>]",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "BASE-03",
+    "action": "PRAGMA foreign_key_check after audit",
+    "expected": "0 violations",
+    "actual": "0 violations",
+    "passed": true,
+    "evidence": "FK check result: []",
+    "severity": null,
+    "affects": null
+  }
+]

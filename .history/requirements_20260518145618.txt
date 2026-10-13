@@ -1,0 +1,27 @@
+# Web Framework
+Flask==3.0.3
+Flask-CORS==4.0.0
+Werkzeug==3.0.1
+
+# Scientific Computing
+numpy==1.24.3
+scipy==1.11.4
+
+# Computer Vision
+opencv-python==4.8.1.78
+Pillow==10.1.0
+scikit-image==0.22.0
+
+# Deep Learning & AI
+torch==2.1.1
+torchvision==0.16.1
+onnxruntime==1.17.0
+ultralytics==8.0.228
+insightface==0.7.3
+
+# Database
+SQLAlchemy==2.0.23
+
+# Utilities
+python-dotenv==1.0.0
+requests==2.31.0

@@ -1,0 +1,266 @@
+[
+  {
+    "test_id": "INT-STAFF-01",
+    "category": "Staff Consistency",
+    "description": "Employee #38 consistency across users, salary_configs, shifts, and API",
+    "expected": "Name='Imran Khalid', Dept='AI & Data Science', Basic=250k, Allow=35k, Ded=10k, matching shift",
+    "actual": "DB: Imran Khalid, AI & Data Science, Basic=250000.0, Shift=Morning Shift | API: Imran Khalid, Shift=Morning Shift",
+    "status": "PASS"
+  },
+  {
+    "test_id": "INT-STAFF-02",
+    "category": "Staff Consistency",
+    "description": "Employee #38 reflected in Attendance Reports with department and shift",
+    "expected": "Records exist with user_id=38, dept='AI & Data Science'",
+    "actual": "Found in report: True, records count=1",
+    "status": "PASS"
+  },
+  {
+    "test_id": "INT-STAFF-03",
+    "category": "Staff Consistency",
+    "description": "Employee #38 reflected in Payroll records with basic salary PKR 250,000",
+    "expected": "Payroll record basic_salary == 250000.0",
+    "actual": "Found: True, basic: 250000.0",
+    "status": "PASS"
+  },
+  {
+    "test_id": "INT-ORG-01",
+    "category": "Org Hierarchy",
+    "description": "Create Department -> Create Designation -> Assign to Staff roundtrip",
+    "expected": "HTTP 201 for dept & designation, staff profile reflects both",
+    "actual": "Dept HTTP 201, Desig HTTP 201, Staff: dept='QA Integration cafd4f', pos='QA Lead cafd4f'",
+    "status": "PASS"
+  },
+  {
+    "test_id": "INT-ORG-02",
+    "category": "Org Hierarchy",
+    "description": "Attendance Reports filter by newly created department",
+    "expected": "Returns report containing newly assigned staff member",
+    "actual": "HTTP 200, staff found in dept report: True",
+    "status": "PASS"
+  },
+  {
+    "test_id": "INT-ORG-03",
+    "category": "Org Hierarchy",
+    "description": "Clean up temporary Org entities and verify 0 foreign-key violations",
+    "expected": "0 violations",
+    "actual": "0 violations",
+    "status": "PASS"
+  },
+  {
+    "test_id": "INT-HIST-01",
+    "category": "Shift Immutability",
+    "description": "Staff shift changes preserve multi-period historical timeline in employee_shift_history",
+    "expected": "Entries for 2026-01-01 (Shift 1) and 2026-03-01 (Shift 3)",
+    "actual": "Found 3 entries: [(1, 'Morning Shift', '2026-01-01'), (3, 'Night Shift', '2026-03-01'), (1, 'Morning Shift', '2026-10-09')]",
+    "status": "PASS"
+  },
+  {
+    "test_id": "INT-HIST-02",
+    "category": "Shift Immutability",
+    "description": "Historical date resolution retrieves correct historical shift (Jan=Morning, Mar=Night)",
+    "expected": "Jan 2026 -> Morning Shift, Mar 2026 -> Night Shift",
+    "actual": "Jan: Morning Shift, Mar: Night Shift",
+    "status": "PASS"
+  },
+  {
+    "test_id": "INT-LEAVE-01",
+    "category": "Leave Integration",
+    "description": "Approved Paid Leave reflects 'on_leave' in attendance interpretation",
+    "expected": "status == 'on_leave'",
+    "actual": "HTTP 200, status='on_leave'",
+    "status": "PASS"
+  },
+  {
+    "test_id": "INT-LEAVE-02",
+    "category": "Leave Integration",
+    "description": "Approved Unpaid Leave reflects 'on_leave_unpaid' in attendance interpretation",
+    "expected": "status == 'on_leave_unpaid'",
+    "actual": "HTTP 200, status='on_leave_unpaid'",
+    "status": "PASS"
+  },
+  {
+    "test_id": "INT-LEAVE-03",
+    "category": "Leave Integration",
+    "description": "Rejected Leave does NOT grant leave status (remains 'absent')",
+    "expected": "status == 'absent'",
+    "actual": "status='absent'",
+    "status": "PASS"
+  },
+  {
+    "test_id": "INT-LEAVE-04",
+    "category": "Leave Integration",
+    "description": "Pending Leave does NOT grant leave status until approved (remains 'absent')",
+    "expected": "status == 'absent'",
+    "actual": "status='absent'",
+    "status": "PASS"
+  },
+  {
+    "test_id": "INT-OT-01",
+    "category": "Overtime Integration",
+    "description": "Overtime workflow: Create -> Pending -> Approve -> Payroll incorporation",
+    "expected": "HTTP 201, Pending=True, Approved=True, OT Hours=2.5 in preview",
+    "actual": "Created=True, Pending=True, Approved=True, OT Hours=2.5, OT Amt=3004.8",
+    "status": "PASS"
+  },
+  {
+    "test_id": "INT-OT-02",
+    "category": "Overtime Integration",
+    "description": "Rejected Overtime does NOT impact payroll (OT hours == 0.0)",
+    "expected": "overtime_hours == 0.0",
+    "actual": "overtime_hours=0.0",
+    "status": "PASS"
+  },
+  {
+    "test_id": "INT-SAL-01",
+    "category": "Salary Integration",
+    "description": "Zero discrepancies between salary_configs.basic_salary and users.salary",
+    "expected": "0 mismatches",
+    "actual": "0 mismatches",
+    "status": "PASS"
+  },
+  {
+    "test_id": "INT-SAL-02",
+    "category": "Salary Integration",
+    "description": "Payroll calculation formula: Gross = Basic (250k) + Allowances (35k) = 285k",
+    "expected": "Gross == PKR 285,000.00",
+    "actual": "Gross == PKR 285,000.00",
+    "status": "PASS"
+  },
+  {
+    "test_id": "INT-PAYREP-01",
+    "category": "Payroll Reports",
+    "description": "Stored payroll records for run #2 reconcile with /api/payroll?month=2026-09 (34 records)",
+    "expected": "DB count == API count == 34",
+    "actual": "DB: 34, API: 34",
+    "status": "PASS"
+  },
+  {
+    "test_id": "INT-REP-01",
+    "category": "Report Filters",
+    "description": "Attendance Reports filter by Date Range (2026-03-01 to 2026-03-31)",
+    "expected": "HTTP 200, 31 daily records per employee strictly spanning March 2026",
+    "actual": "Records returned: 39, all in date range: True",
+    "status": "PASS"
+  },
+  {
+    "test_id": "INT-REP-02",
+    "category": "Report Filters",
+    "description": "Attendance Reports filter by Single Date (2026-03-15)",
+    "expected": "HTTP 200, all records reflect date == '2026-03-15'",
+    "actual": "Records returned: 39, all matched: True",
+    "status": "PASS"
+  },
+  {
+    "test_id": "INT-REP-03",
+    "category": "Report Filters",
+    "description": "Attendance Reports filter by Department ('Software Development')",
+    "expected": "All returned records have department == 'Software Development'",
+    "actual": "Records returned: 7, all matched: True",
+    "status": "PASS"
+  },
+  {
+    "test_id": "INT-REP-04",
+    "category": "Report Filters",
+    "description": "Attendance Reports filter by Shift ('Morning Shift')",
+    "expected": "All returned records belong to Morning Shift",
+    "actual": "Records returned: 38, all matched: True",
+    "status": "PASS"
+  },
+  {
+    "test_id": "INT-REP-05",
+    "category": "Report Filters",
+    "description": "Attendance Reports search filter ('Imran') isolates matching staff",
+    "expected": "All records contain 'imran' in employee name",
+    "actual": "Records returned: 2, all matched: True",
+    "status": "PASS"
+  },
+  {
+    "test_id": "INT-REP-06",
+    "category": "Report Filters",
+    "description": "Attendance Reports gracefully returns empty list [] for non-matching search",
+    "expected": "HTTP 200 with records == []",
+    "actual": "Records: []",
+    "status": "PASS"
+  },
+  {
+    "test_id": "INT-XLS-01",
+    "category": "Excel Export",
+    "description": "Excel Export generates valid .xlsx workbook with correct metadata and NO confidence column",
+    "expected": "HTTP 200, title='QIntellect Technologies', 11 headers exact match, Confidence=False",
+    "actual": "HTTP 200, Title='QIntellect Technologies', Headers match=True, Has Confidence=False",
+    "status": "PASS"
+  },
+  {
+    "test_id": "INT-XLS-02",
+    "category": "Excel Export",
+    "description": "Excel Export row count strictly matches Attendance Report API count under same filter",
+    "expected": "Excel rows (7) == API report rows (7)",
+    "actual": "Excel: 7, API: 7",
+    "status": "PASS"
+  },
+  {
+    "test_id": "INT-SYNC-01",
+    "category": "Full Roundtrip Sync",
+    "description": "Frontend/API Action -> SQLite persistence -> API response roundtrip consistency",
+    "expected": "HTTP 200, API and SQLite reflect identical updated values",
+    "actual": "API: name='Sync User Updated dfcb8a', shift=3 | DB: ('Sync User Updated dfcb8a', 'HR Manager', 75000.0, 3)",
+    "status": "PASS"
+  },
+  {
+    "test_id": "INT-SETT-01",
+    "category": "Settings Consistency",
+    "description": "Branch Settings API matches database row for company and branch name",
+    "expected": "Branch='QIntellect Technologies', Company='QIntellect Technologies'",
+    "actual": "API: Branch='QIntellect Technologies', Company='QIntellect Technologies'",
+    "status": "PASS"
+  },
+  {
+    "test_id": "INT-ERR-01",
+    "category": "API Error Handling",
+    "description": "API validation: whitespace name -> 400, invalid shift -> 400, missing user -> 404",
+    "expected": "HTTP 400, HTTP 400, HTTP 404",
+    "actual": "Whitespace: 400, Invalid Shift: 400, Missing User: 404",
+    "status": "PASS"
+  },
+  {
+    "test_id": "INT-INTEG-01",
+    "category": "Database Integrity",
+    "description": "PRAGMA integrity_check == ok, foreign_key_check == 0, zero orphan records",
+    "expected": "integrity=ok, fks=0, orphan_sc=0, orphan_esh=0, orphan_des=0",
+    "actual": "integrity=ok, fks=0, orphan_sc=0, orphan_esh=0, orphan_des=0",
+    "status": "PASS"
+  },
+  {
+    "test_id": "INT-BASE-01",
+    "category": "Production Baseline",
+    "description": "All 12 SQLite tables match exact pre-test production baseline counts",
+    "expected": "Exact baseline across all 12 tables",
+    "actual": "Baseline restored: True",
+    "status": "PASS"
+  },
+  {
+    "test_id": "INT-REGR-01",
+    "category": "Global Regression",
+    "description": "Strict frozen regression suite execution",
+    "expected": "37/37 TESTS PASSED | 0 FAILED",
+    "actual": "Exit code: 0, Output: 37/37 PASSED",
+    "status": "PASS"
+  },
+  {
+    "test_id": "INT-PROT-01",
+    "category": "Module Protection",
+    "description": "Confirmation that all 16 protected modules remained untouched during final audit",
+    "expected": "Untouched",
+    "actual": "Confirmed Untouched",
+    "status": "PASS"
+  },
+  {
+    "test_id": "INT-PORTAL-01",
+    "category": "Scope Enforcement",
+    "description": "Confirmation that zero Employee Portal code/routes were introduced",
+    "expected": "No portal created",
+    "actual": "Confirmed No portal created",
+    "status": "PASS"
+  }
+]

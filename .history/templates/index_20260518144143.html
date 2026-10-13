@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Attendance System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+        
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.3);
+        }
+        
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+        
+        .card h3 {
+            color: #333;
+            margin: 20px 0 15px 0;
+            font-size: 1.1em;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        input[type="text"],
+        input[type="email"],
+        input[type="file"],
+        input[type="number"],
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+            width: 100%;
+        }
+        
+        button:hover {
+            transform: scale(1.02);
+        }
+        
+        button:active {
+            transform: scale(0.98);
+        }
+        
+        .success {
+            background: #4caf50;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .error {
+            background: #f44336;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .info {
+            background: #2196f3;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .stat-box {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .log-table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+        
+        .log-table th {
+            background: #667eea;
+            color: white;
+            padding: 12px;
+            text-align: left;
+        }
+        
+        .log-table td {
+            padding: 12px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .log-table tr:hover {
+            background: #f5f5f5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎯 AI Attendance System</h1>
+            <p>InsightFace + YOLOv8 Face Recognition</p>
+        </header>
+        
+        <div class="card-grid">
+            <!-- Enrollment Card -->
+            <div class="card">
+                <h2>📝 Enrollment</h2>
+                
+                <div id="enrollmentMessage"></div>
+                
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" id="enrollName" placeholder="Enter full name">
+                </div>
+                
+                <div class="form-group">
+                    <label>Email (Optional)</label>
+                    <input type="email" id="enrollEmail" placeholder="email@example.com">
+                </div>
+                
+                <button onclick="createEnrollUser()">✓ Create User</button>
+                
+                <h3>Upload 15-sec Video</h3>
+                <div class="form-group">
+                    <label>Video File</label>
+                    <input type="file" id="videoFile" accept="video/*">
+                </div>
+                
+                <div class="form-group">
+                    <label>User ID</label>
+                    <input type="number" id="userIdEnroll" placeholder="Auto-filled after user creation">
+                </div>
+                
+                <button onclick="uploadEnrollmentVideo()">🎥 Upload & Train</button>
+            </div>
+            
+            <!-- Recognition Card -->
+            <div class="card">
+                <h2>🔍 Recognition</h2>
+                
+                <div id="recognitionMessage"></div>
+                
+                <h3>RTSP Stream</h3>
+                <div class="form-group">
+                    <label>RTSP URL (NVR/DVR/Camera)</label>
+                    <textarea id="rtspUrl" rows="3" placeholder="rtsp://192.168.1.100:554/stream"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label>Frames to Process</label>
+                    <input type="number" id="framesToProcess" value="10" min="1" max="100">
+                </div>
+                
+                <button onclick="recognizeRTSP()">📹 Start Recognition</button>
+                
+                <h3>Upload Photo</h3>
+                <div class="form-group">
+                    <input type="file" id="photoFile" accept="image/*">
+                </div>
+                
+                <button onclick="recognizePhoto()">📷 Recognize Face</button>
+            </div>
+            
+            <!-- Dashboard Card -->
+            <div class="card">
+                <h2>📊 Dashboard</h2>
+                
+                <div id="statsMessage"></div>
+                
+                <button onclick="loadStats()">📈 Load Statistics</button>
+                
+                <div id="statsContainer"></div>
+                
+                <button onclick="loadAttendanceLogs()">📋 Load Logs</button>
+                
+                <div id="logsContainer"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const API_BASE = 'http://localhost:5000/api';
+        
+        // Initialize system on page load
+        window.onload = async () => {
+            console.log('[*] Initializing system...');
+            try {
+                const resp = await fetch(`${API_BASE}/init`, { method: 'POST' });
+                const data = await resp.json();
+                if (resp.ok) {
+                    showMessage('statsMessage', `✓ System initialized: ${data.message}`, 'success');
+                } else {
+                    showMessage('statsMessage', `⚠ ${data.message}`, 'info');
+                }
+            } catch (e) {
+                showMessage('statsMessage', `✗ Connection failed: ${e.message}`, 'error');
+            }
+        };
+        
+        function showMessage(elementId, message, type) {
+            const elem = document.getElementById(elementId);
+            elem.innerHTML = `<div class="${type}">${message}</div>`;
+        }
+        
+        async function createEnrollUser() {
+            const name = document.getElementById('enrollName').value;
+            const email = document.getElementById('enrollEmail').value;
+            
+            if (!name) {
+                showMessage('enrollmentMessage', '✗ Name is required', 'error');
+                return;
+            }
+            
+            try {
+                const resp = await fetch(`${API_BASE}/enroll/create-user`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email })
+                });
+                const data = await resp.json();
+                
+                if (resp.ok) {
+                    document.getElementById('userIdEnroll').value = data.user_id;
+                    showMessage('enrollmentMessage', `✓ ${data.message}`, 'success');
+                } else {
+                    showMessage('enrollmentMessage', `✗ ${data.error}`, 'error');
+                }
+            } catch (e) {
+                showMessage('enrollmentMessage', `✗ Error: ${e.message}`, 'error');
+            }
+        }
+        
+        async function uploadEnrollmentVideo() {
+            const userId = document.getElementById('userIdEnroll').value;
+            const videoFile = document.getElementById('videoFile').files[0];
+            
+            if (!userId) {
+                showMessage('enrollmentMessage', '✗ Create user first', 'error');
+                return;
+            }
+            if (!videoFile) {
+                showMessage('enrollmentMessage', '✗ Select video file', 'error');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('video', videoFile);
+            formData.append('user_id', userId);
+            
+            showMessage('enrollmentMessage', '⏳ Processing video...', 'info');
+            
+            try {
+                const resp = await fetch(`${API_BASE}/enroll/upload-video`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await resp.json();
+                
+                if (resp.ok) {
+                    showMessage('enrollmentMessage', `✓ ${data.message}`, 'success');
+                } else {
+                    showMessage('enrollmentMessage', `✗ ${data.error}`, 'error');
+                }
+            } catch (e) {
+                showMessage('enrollmentMessage', `✗ Error: ${e.message}`, 'error');
+            }
+        }
+        
+        async function recognizePhoto() {
+            const photoFile = document.getElementById('photoFile').files[0];
+            
+            if (!photoFile) {
+                showMessage('recognitionMessage', '✗ Select image file', 'error');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('image', photoFile);
+            
+            showMessage('recognitionMessage', '⏳ Recognizing...', 'info');
+            
+            try {
+                const resp = await fetch(`${API_BASE}/recognize/frame`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await resp.json();
+                
+                if (resp.ok) {
+                    const results = data.detections || [];
+                    let message = `✓ Detected ${data.total_faces_detected} face(s)\n`;
+                    results.forEach(r => {
+                        message += `• ${r.matched_user} (${(r.similarity * 100).toFixed(1)}%)\n`;
+                    });
+                    showMessage('recognitionMessage', message, 'success');
+                } else {
+                    showMessage('recognitionMessage', `✗ ${data.error}`, 'error');
+                }
+            } catch (e) {
+                showMessage('recognitionMessage', `✗ Error: ${e.message}`, 'error');
+            }
+        }
+        
+        async function recognizeRTSP() {
+            const rtspUrl = document.getElementById('rtspUrl').value;
+            const frames = document.getElementById('framesToProcess').value;
+            
+            if (!rtspUrl) {
+                showMessage('recognitionMessage', '✗ Enter RTSP URL', 'error');
+                return;
+            }
+            
+            showMessage('recognitionMessage', '⏳ Processing RTSP stream...', 'info');
+            
+            try {
+                const resp = await fetch(`${API_BASE}/recognize/rtsp`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ rtsp_url: rtspUrl, frames: parseInt(frames) })
+                });
+                const data = await resp.json();
+                
+                if (resp.ok) {
+                    const users = data.recognized_users || [];
+                    let message = `✓ Processed ${data.frames_processed} frames\n`;
+                    users.forEach(u => message += `• ${u}\n`);
+                    showMessage('recognitionMessage', message || '✓ No matches', 'success');
+                } else {
+                    showMessage('recognitionMessage', `✗ ${data.error}`, 'error');
+                }
+            } catch (e) {
+                showMessage('recognitionMessage', `✗ Error: ${e.message}`, 'error');
+            }
+        }
+        
+        async function loadStats() {
+            try {
+                const resp = await fetch(`${API_BASE}/stats`);
+                const data = await resp.json();
+                
+                document.getElementById('statsContainer').innerHTML = `
+                    <div class="stats-grid">
+                        <div class="stat-box">
+                            <div class="stat-value">${data.total_users}</div>
+                            <div class="stat-label">Enrolled Users</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-value">${data.today_attendance}</div>
+                            <div class="stat-label">Today's Attendance</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-value">${data.total_logs}</div>
+                            <div class="stat-label">Total Records</div>
+                        </div>
+                    </div>
+                `;
+            } catch (e) {
+                showMessage('statsMessage', `✗ Error: ${e.message}`, 'error');
+            }
+        }
+        
+        async function loadAttendanceLogs() {
+            try {
+                const resp = await fetch(`${API_BASE}/attendance/logs?limit=20`);
+                const data = await resp.json();
+                
+                let html = '<table class="log-table"><thead><tr><th>Name</th><th>Confidence</th><th>Time</th><th>Source</th></tr></thead><tbody>';
+                data.logs.forEach(log => {
+                    html += `<tr>
+                        <td>${log.name}</td>
+                        <td>${(log.confidence * 100).toFixed(1)}%</td>
+                        <td>${new Date(log.timestamp).toLocaleString()}</td>
+                        <td>${log.source}</td>
+                    </tr>`;
+                });
+                html += '</tbody></table>';
+                
+                document.getElementById('logsContainer').innerHTML = html;
+            } catch (e) {
+                showMessage('statsMessage', `✗ Error: ${e.message}`, 'error');
+            }
+        }
+    </script>
+</body>
+</html>

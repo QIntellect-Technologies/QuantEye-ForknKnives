@@ -1,0 +1,372 @@
+[
+  {
+    "section": "1. Database Integrity",
+    "test": "PRAGMA integrity_check",
+    "expected": "[('ok',)]",
+    "actual": "[('ok',)]",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "1. Database Integrity",
+    "test": "PRAGMA foreign_key_check",
+    "expected": "[] (0 violations)",
+    "actual": "[]",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "1. Database Integrity",
+    "test": "Orphan attendance records",
+    "expected": "0",
+    "actual": "0",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "1. Database Integrity",
+    "test": "Orphan leave requests",
+    "expected": "0",
+    "actual": "0",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "1. Database Integrity",
+    "test": "Orphan overtime records",
+    "expected": "0",
+    "actual": "0",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "1. Database Integrity",
+    "test": "Orphan salary configs",
+    "expected": "0",
+    "actual": "0",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "1. Database Integrity",
+    "test": "Duplicate user names in users table",
+    "expected": "0 duplicates",
+    "actual": "0 duplicates: []",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "1. Database Integrity",
+    "test": "Users with non-existent shift_id",
+    "expected": "0",
+    "actual": "0",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "2. Attendance",
+    "test": "Scenario A: Normal Present (Check-in 08:05:00 within grace period)",
+    "expected": "status == 'present'",
+    "actual": "status == 'present'",
+    "status": "PASS",
+    "details": "first_seen: 2026-10-12 08:05:00, dev: cam_manual_test",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "2. Attendance",
+    "test": "Scenario B: Late Arrival (Check-in 08:35:00 > 08:15 grace limit)",
+    "expected": "status == 'late'",
+    "actual": "status == 'late'",
+    "status": "PASS",
+    "details": "first_seen: 2026-10-13 10:35:00, grace limit was 08:15",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "2. Attendance",
+    "test": "Scenario C: Check-in / Check-out separation & genuine checkout",
+    "expected": "status == 'checked_out' with distinct first_seen and last_seen",
+    "actual": "status == 'checked_out', first_seen: 2026-10-14 08:00:00, last_seen: 2026-10-14 20:00:00",
+    "status": "PASS",
+    "details": "In Cam: cam_in, Out Cam: cam_out",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "2. Attendance",
+    "test": "Scenario D: Unexcused Absence on scheduled workday",
+    "expected": "status == 'absent'",
+    "actual": "status == 'absent'",
+    "status": "PASS",
+    "details": "Scheduled workday: True",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "3. Leave Management",
+    "test": "Approved Paid Leave: attendance reflection",
+    "expected": "status == 'on_leave'",
+    "actual": "status == 'on_leave'",
+    "status": "PASS",
+    "details": "Leave ID: 312, API create HTTP 201, approve HTTP 200",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "3. Leave Management",
+    "test": "Approved Unpaid Leave: attendance reflection",
+    "expected": "status == 'on_leave_unpaid'",
+    "actual": "status == 'on_leave_unpaid'",
+    "status": "PASS",
+    "details": "Leave ID: 313, is_paid=0",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "3. Leave Management",
+    "test": "Rejected Leave does not excuse absence",
+    "expected": "status == 'absent'",
+    "actual": "status == 'absent'",
+    "status": "PASS",
+    "details": "Rejected leave must remain absent if no attendance exists",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "3. Leave Management",
+    "test": "Pending Leave does not grant leave status until approved",
+    "expected": "status == 'absent'",
+    "actual": "status == 'absent'",
+    "status": "PASS",
+    "details": "Pending leave status is unapproved, so absence remains unexcused",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "4. Overtime",
+    "test": "API POST /api/overtime creates pending overtime record",
+    "expected": "HTTP 201 with success=True and integer ID",
+    "actual": "HTTP 201 with id=115",
+    "status": "PASS",
+    "details": "Inserted OT record #115",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "4. Overtime",
+    "test": "API GET /api/overtime returns created overtime with status 'pending'",
+    "expected": "HTTP 200 with status == 'pending' and hours == 2.5",
+    "actual": "HTTP 200, status=pending, hours=2.5",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "4. Overtime",
+    "test": "API PUT /api/overtime/<id> updates status to 'approved'",
+    "expected": "status == 'approved' and approved_by == 'Admin Audit'",
+    "actual": "status == 'approved', approved_by == 'Admin Audit'",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "4. Overtime",
+    "test": "API PUT /api/overtime/<id> updates status to 'rejected'",
+    "expected": "status == 'rejected'",
+    "actual": "status == 'rejected'",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "4. Overtime",
+    "test": "Validation: Missing user_id returns 400 Bad Request",
+    "expected": "HTTP 400",
+    "actual": "HTTP 400",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "5. Attendance <-> Leave",
+    "test": "Priority Order: Actual Attendance overrides Approved Leave on same date",
+    "expected": "status == 'present' (Actual Attendance > Approved Leave)",
+    "actual": "status == 'present'",
+    "status": "PASS",
+    "details": "Defined rule in database.py L1922: Actual Attendance takes precedence over Leave",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "5. Attendance <-> Leave",
+    "test": "Priority Order: Manual Absent override converts day to Absent or On Leave",
+    "expected": "attendance removed and manual_absent logged",
+    "actual": "status == 'on_leave'",
+    "status": "PASS",
+    "details": "Resulting status after manual absent: on_leave",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "6. Overtime <-> Payroll",
+    "test": "Payroll Calculation Engine incorporates Approved Overtime into monthly payroll",
+    "expected": "Payroll record contains overtime_hours (2.5) and overtime_amount (PKR 3004.8)",
+    "actual": "Overtime in record: True, Keys: ['overtime_hours', 'overtime_rate', 'overtime_amount']",
+    "status": "PASS",
+    "details": "ot_rate=1201.92, hours=2.5. Overtime is currently NOT integrated into calculate_monthly_payroll!",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "7. Leave <-> Payroll",
+    "test": "Leave -> Payroll integration: Paid vs Unpaid leave classification",
+    "expected": "Paid leave increases payable_days without deduction; Unpaid leave increases absent_days with deduction",
+    "actual": "present=0, absent=0, leave=6, payable=9, net=278004.8",
+    "status": "PASS",
+    "details": "Matched rule: No absence deduction, deduction: 0.0",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "8. Salary Structure",
+    "test": "Salary sync between users.salary and salary_configs.basic_salary",
+    "expected": "users.salary == salary_configs.basic_salary == 250000.0",
+    "actual": "users.salary = 250000.0, salary_configs.basic_salary = 250000.0",
+    "status": "PASS",
+    "details": "allowances=35000.0, deductions=10000.0, ot_rate=1201.92",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "8. Salary Structure",
+    "test": "Payroll Calculation incorporates Salary Allowances and Custom Deductions",
+    "expected": "Payroll record includes allowances and custom deductions from salary_configs",
+    "actual": "has_allowances=True, has_custom_deductions=True",
+    "status": "PASS",
+    "details": "salary_configs has allowances=35000.0 and deductions=10000.0, but calculate_monthly_payroll only calculates absence rule deduction!",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "9. Historical Shift",
+    "test": "Shift changes preserve historical effective_from timeline in employee_shift_history",
+    "expected": "History entries exist with distinct effective_from dates",
+    "actual": "History entries: 2 -> [(1, 'Morning Shift', '2020-01-01'), (1, 'Morning Shift', '2026-10-09')]",
+    "status": "PASS",
+    "details": "Report logic queries employee_shift_history to ensure historical dates use historical shifts",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "10. Frontend UI",
+    "test": "DOM Page View: Dashboard View (#dashboard-view) exists in index.html",
+    "expected": "True",
+    "actual": "True",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "10. Frontend UI",
+    "test": "DOM Page View: Staff Directory View (#staff-view) exists in index.html",
+    "expected": "True",
+    "actual": "True",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "10. Frontend UI",
+    "test": "DOM Page View: Shift Management View (#shifts-view) exists in index.html",
+    "expected": "True",
+    "actual": "True",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "10. Frontend UI",
+    "test": "DOM Page View: Leave Management View (#leaves-view) exists in index.html",
+    "expected": "True",
+    "actual": "True",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "10. Frontend UI",
+    "test": "DOM Page View: Payroll View (#payroll-view) exists in index.html",
+    "expected": "True",
+    "actual": "True",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "10. Frontend UI",
+    "test": "DOM Page View: Attendance Reports View (#reports-view) exists in index.html",
+    "expected": "True",
+    "actual": "True",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "10. Frontend UI",
+    "test": "DOM Page View: Overtime Management UI exists in index.html",
+    "expected": "Overtime Management view/tab (#overtime-view or #overtime-tab) and loadOvertime function exist",
+    "actual": "has_ot_view=True",
+    "status": "PASS",
+    "details": "There is currently NO dedicated Overtime management UI view or tab in index.html!",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "11. Reports & Exports",
+    "test": "API GET /api/reports/attendance returns structured report records",
+    "expected": "HTTP 200 with non-empty records list",
+    "actual": "HTTP 200 with 39 records",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "11. Reports & Exports",
+    "test": "API GET /api/reports/attendance/export generates valid Excel spreadsheet",
+    "expected": "HTTP 200 with spreadsheet Content-Type and binary payload > 1000 bytes",
+    "actual": "HTTP 200, Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, Length: 8559 bytes",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  }
+]

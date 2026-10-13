@@ -62,15 +62,5 @@ static/profile_photos/
 .env.*
 !.env.example
 
-# Client-specific and pilot variants are maintained separately
-pilot_*.py
-build_*.py
-start_pilot*.ps1
-client_config*.json
-*Pilot*.spec
-*pilot*.spec
-backup/
-.history/
-scratch/
+# Local virtual environments
 pilot_env/
-source_code_backup*.zip

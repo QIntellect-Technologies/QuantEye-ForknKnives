@@ -1,0 +1,272 @@
+[
+  {
+    "section": "A. Database Integrity",
+    "test_name": "PRAGMA integrity_check",
+    "expected": "[('ok',)]",
+    "actual": "[('ok',)]",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "A. Database Integrity",
+    "test_name": "PRAGMA foreign_key_check",
+    "expected": "[] (0 violations)",
+    "actual": "[]",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "A. Database Integrity",
+    "test_name": "Orphan records in attendance.user_id",
+    "expected": "0 orphans",
+    "actual": "0",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "A. Database Integrity",
+    "test_name": "Orphan records in leave_requests.user_id",
+    "expected": "0 orphans",
+    "actual": "0",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "A. Database Integrity",
+    "test_name": "Orphan records in employee_leave_balances.user_id",
+    "expected": "0 orphans",
+    "actual": "0",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "A. Database Integrity",
+    "test_name": "Orphan records in overtime.user_id",
+    "expected": "0 orphans",
+    "actual": "0",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "A. Database Integrity",
+    "test_name": "Orphan records in salary_configs.user_id",
+    "expected": "0 orphans",
+    "actual": "0",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "A. Database Integrity",
+    "test_name": "Orphan records in employee_shift_history.user_id",
+    "expected": "0 orphans",
+    "actual": "0",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "A. Database Integrity",
+    "test_name": "Orphan records in manual_absent.user_id",
+    "expected": "0 orphans",
+    "actual": "0",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "A. Database Integrity",
+    "test_name": "Orphan records in locator_history.user_id",
+    "expected": "0 orphans",
+    "actual": "0",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "A. Database Integrity",
+    "test_name": "Duplicate user names in users table",
+    "expected": "0",
+    "actual": "0",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "A. Database Integrity",
+    "test_name": "Users referencing non-existent shift_id",
+    "expected": "0",
+    "actual": "0",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "B. Attendance",
+    "test_name": "Scenario A: Normal Present (Check-in 10:32:00 within 2m grace of 10:31 start)",
+    "expected": "status == 'present'",
+    "actual": "status == 'present'",
+    "status": "PASS",
+    "details": "first_seen: 2026-10-12 10:32:00, shift_start: None, grace: Nonem",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "B. Attendance",
+    "test_name": "Scenario B: Late Arrival (Check-in 10:35:00 after 10:33 grace deadline)",
+    "expected": "status == 'late'",
+    "actual": "status == 'late'",
+    "status": "PASS",
+    "details": "first_seen: 2026-10-13 10:35:00, deadline: 10:33:00",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "B. Attendance",
+    "test_name": "Scenario C: Check-in / Check-out separation and genuine checkout",
+    "expected": "status == 'checked_out' with distinct first_seen and last_seen",
+    "actual": "status == 'checked_out', first_seen: 2026-10-14 10:31:00, last_seen: 2026-10-14 10:34:00",
+    "status": "PASS",
+    "details": "Check-In Cam: cam_in, Check-Out Cam: cam_out",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "B. Attendance",
+    "test_name": "Scenario D: Unexcused Absence on scheduled workday with no logs",
+    "expected": "status == 'absent'",
+    "actual": "status == 'absent'",
+    "status": "PASS",
+    "details": "scheduled_workday: True",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "C. Leave Management",
+    "test_name": "Approved Paid Leave reflection in attendance",
+    "expected": "status == 'on_leave'",
+    "actual": "status == 'on_leave'",
+    "status": "PASS",
+    "details": "Leave ID: 65, is_paid=1",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "C. Leave Management",
+    "test_name": "Approved Unpaid Leave reflection in attendance",
+    "expected": "status == 'on_leave_unpaid'",
+    "actual": "status == 'on_leave_unpaid'",
+    "status": "PASS",
+    "details": "Leave ID: 66, is_paid=0",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "C. Leave Management",
+    "test_name": "Rejected Leave does not excuse absence",
+    "expected": "status == 'absent'",
+    "actual": "status == 'absent'",
+    "status": "PASS",
+    "details": "Leave ID: 67, status: rejected",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "C. Leave Management",
+    "test_name": "Pending Leave does not grant leave status until approved",
+    "expected": "status == 'absent'",
+    "actual": "status == 'absent'",
+    "status": "PASS",
+    "details": "Leave ID: 68, status: pending",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "D. Overtime",
+    "test_name": "API POST /api/overtime creates record",
+    "expected": "HTTP 201 with positive integer ID",
+    "actual": "HTTP 201 with ID 3",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "D. Overtime",
+    "test_name": "API PUT /api/overtime/<id> status updates to 'approved'",
+    "expected": "status == 'approved' and approved_by == 'Admin Auditor'",
+    "actual": "status == 'approved', approved_by == 'Admin Auditor'",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "D. Overtime",
+    "test_name": "Frontend UI View: Dedicated Overtime view/tab in index.html",
+    "expected": "Overtime Management view/tab (#overtime-view or #overtime-tab) exists",
+    "actual": "has_ot_ui == False",
+    "status": "FAIL",
+    "details": "DEFECT CONFIRMED: Overtime API and DB table exist, but NO UI view/tab exists in index.html!",
+    "severity": "HIGH",
+    "affected_modules": "Overtime -> Frontend UI"
+  },
+  {
+    "section": "E. Overtime <-> Payroll",
+    "test_name": "Payroll Calculation Engine incorporates Approved Overtime into Net Salary",
+    "expected": "Record contains overtime_amount == PKR 3605.76 (3.0 hrs * PKR 1201.92/hr)",
+    "actual": "has_overtime_field=False, overtime_amount=0.0",
+    "status": "FAIL",
+    "details": "DEFECT CONFIRMED: calculate_monthly_payroll in database.py does NOT query or integrate overtime table!",
+    "severity": "CRITICAL",
+    "affected_modules": "Overtime -> Payroll Calculation -> Net Salary"
+  },
+  {
+    "section": "F. Salary Structure",
+    "test_name": "Payroll Calculation incorporates Allowances and Fixed Deductions from salary_configs",
+    "expected": "Record includes allowances (PKR 35000.0) and custom deductions (PKR 10000.0)",
+    "actual": "has_allowances=False, has_salary_deductions=False",
+    "status": "FAIL",
+    "details": "DEFECT CONFIRMED: salary_configs has allowances=35000.0 and deductions=10000.0, but calculate_monthly_payroll only calculates absence-rule deductions!",
+    "severity": "MEDIUM",
+    "affected_modules": "Salary Structure -> Payroll -> Net Salary"
+  },
+  {
+    "section": "G. Reports & Exports",
+    "test_name": "API GET /api/reports/export/csv exports valid attendance CSV",
+    "expected": "HTTP 200 with text/csv content-type and payload > 1000 bytes",
+    "actual": "HTTP 200, content_type: text/csv; charset=utf-8; charset=utf-8, length: 5501 bytes",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "G. Reports & Exports",
+    "test_name": "API GET /api/reports/export/excel exports valid Excel workbook (.xlsx)",
+    "expected": "HTTP 200 with application/vnd.openxmlformats-officedocument.spreadsheetml.sheet content-type",
+    "actual": "HTTP 500, content_type: application/json",
+    "status": "FAIL",
+    "details": "DEFECT CONFIRMED: ModuleNotFoundError: No module named 'openpyxl' in env310tfgpu environment!",
+    "severity": "MEDIUM",
+    "affected_modules": "Attendance Reports -> Excel Export"
+  }
+]

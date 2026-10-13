@@ -1,0 +1,319 @@
+{
+  "total": 39,
+  "passed": 39,
+  "failed": 0,
+  "results": [
+    {
+      "module": "Salary Structure",
+      "test": "API GET /api/salary returns all active employees",
+      "expected": "HTTP 200 with 38 active employees",
+      "actual": "HTTP 200 with 38 employees",
+      "status": "PASS",
+      "details": "Fields present: ['active', 'allowances', 'basic_salary', 'deductions', 'department', 'designation', 'email', 'is_configured', 'net_estimated', 'ot_rate', 'updated_at', 'user_id', 'user_name']"
+    },
+    {
+      "module": "Salary Structure",
+      "test": "API GET /api/salary/summary returns KPI metrics",
+      "expected": "HTTP 200 with total_employees=38 and positive total_basic",
+      "actual": "HTTP 200 with total_employees=38 and total_basic=3375000.0",
+      "status": "PASS",
+      "details": "Summary: {'avg_basic': 88815.79, 'configured_count': 37, 'total_allowances': 35000.0, 'total_basic': 3375000.0, 'total_deductions': 10000.0, 'total_employees': 38, 'total_net_payroll': 3400000.0, 'unconfigured_count': 1}"
+    },
+    {
+      "module": "Salary Structure",
+      "test": "API GET /api/salary/<id> retrieves employee profile",
+      "expected": "HTTP 200 for user_id=38 (Imran Khalid)",
+      "actual": "HTTP 200 for user: Imran Khalid",
+      "status": "PASS",
+      "details": "Basic: 250000.0, Dept: AI & Data Science"
+    },
+    {
+      "module": "Salary Structure",
+      "test": "Validation: Reject negative basic salary",
+      "expected": "HTTP 400 Bad Request",
+      "actual": "HTTP 400",
+      "status": "PASS",
+      "details": "Response message: {'message': 'Salary, allowances, deductions, and OT rate must be non-negative', 'success': False}"
+    },
+    {
+      "module": "Salary Structure",
+      "test": "Validation: Reject non-existent employee ID",
+      "expected": "HTTP 404 Not Found",
+      "actual": "HTTP 404",
+      "status": "PASS",
+      "details": "Response message: {'message': 'Employee #999999 not found or database error', 'success': False}"
+    },
+    {
+      "module": "Salary Structure",
+      "test": "CRUD: Update salary package with allowances and deductions",
+      "expected": "HTTP 200 with net_estimated=275000.0",
+      "actual": "HTTP 200 with net_estimated=275000.0",
+      "status": "PASS",
+      "details": "Updated config: {'active': 1, 'allowances': 35000.0, 'basic_salary': 250000.0, 'deductions': 10000.0, 'department': 'AI & Data Science', 'designation': 'AI Engineer & Team Lead', 'email': 'mimrankhalid448@gmail.com', 'is_configured': 1, 'net_estimated': 275000.0, 'ot_rate': 1200.0, 'updated_at': '2026-10-08 07:18:06', 'user_id': 38, 'user_name': 'Imran Khalid'}"
+    },
+    {
+      "module": "Salary Structure",
+      "test": "Database Persistence & Sync: salary_configs and users.salary consistency",
+      "expected": "users.salary == 250000.0 and salary_configs has matching row",
+      "actual": "users.salary=250000.0, salary_configs=(250000.0, 35000.0, 10000.0, 1200.0)",
+      "status": "PASS",
+      "details": "Synchronized to prevent Payroll V1 drift"
+    },
+    {
+      "module": "Salary Structure",
+      "test": "Utility: Auto-Calculate OT rates for all staff",
+      "expected": "HTTP 200 with updated_count=38",
+      "actual": "HTTP 200 with updated_count=38",
+      "status": "PASS",
+      "details": "Response: Successfully updated standard overtime rates for 38 active staff members"
+    },
+    {
+      "module": "Salary Structure",
+      "test": "Filter: Filter employees by department",
+      "expected": "All returned employees belong to 'AI & Data Science'",
+      "actual": "Returned 1 employees, all match dept: True",
+      "status": "PASS",
+      "details": "Found 1 members in AI & Data Science"
+    },
+    {
+      "module": "Salary Structure",
+      "test": "CRUD: Reset custom package back to default base",
+      "expected": "HTTP 200 and is_configured=0 with allowances=0, deductions=0",
+      "actual": "HTTP 200, is_configured=0, allowances=0.0",
+      "status": "PASS",
+      "details": "Reset result: {'message': 'Salary package reset to default', 'success': True}"
+    },
+    {
+      "module": "Database Integrity",
+      "test": "PRAGMA integrity_check",
+      "expected": "[('ok',)]",
+      "actual": "[('ok',)]",
+      "status": "PASS",
+      "details": "Database is physically intact"
+    },
+    {
+      "module": "Database Integrity",
+      "test": "PRAGMA foreign_key_check",
+      "expected": "[] (Zero foreign key violations)",
+      "actual": "[]",
+      "status": "PASS",
+      "details": "Zero foreign key violations across all tables"
+    },
+    {
+      "module": "Payroll V1",
+      "test": "Payroll calculation engine produces exact baseline for October 2026",
+      "expected": "Imran Khalid: basic_salary=250000.0, payable_days=4.0, net_salary=37037.04",
+      "actual": "Imran Khalid: basic_salary=250000.0, payable_days=4.0, net_salary=37037.04",
+      "status": "PASS",
+      "details": "Matched Rule: , Status: Finalized"
+    },
+    {
+      "module": "Leave & Holidays",
+      "test": "Leave APIs (leave-types, holidays, leaves, balances)",
+      "expected": "All return HTTP 200",
+      "actual": "Types: 200, Holidays: 200, Requests: 200, Balances: 200",
+      "status": "PASS",
+      "details": "Leave types count: 4"
+    },
+    {
+      "module": "Shift Management",
+      "test": "Shift configurations and employee assignments",
+      "expected": "HTTP 200 with active shifts configured",
+      "actual": "HTTP 200 with 2 shifts",
+      "status": "PASS",
+      "details": "Shifts: ['Morning Shift', 'Night Shift']"
+    },
+    {
+      "module": "Staff Management",
+      "test": "Staff directory list API",
+      "expected": "HTTP 200 with 38 users",
+      "actual": "HTTP 200 with 38 users",
+      "status": "PASS",
+      "details": "Staff directory completely intact"
+    },
+    {
+      "module": "Departments & Designations",
+      "test": "Departments & Designations API suite",
+      "expected": "Both return HTTP 200 with non-empty collections",
+      "actual": "Depts: 200 (10), Desigs: 200 (23)",
+      "status": "PASS",
+      "details": "Department-designation hierarchy intact"
+    },
+    {
+      "module": "Settings",
+      "test": "Branch settings API",
+      "expected": "HTTP 200 with branch_name configured",
+      "actual": "HTTP 200 with branch: QIntellect Technologies",
+      "status": "PASS",
+      "details": "Branch: QIntellect Technologies, City: Rahim Yar Khan"
+    },
+    {
+      "module": "Camera Management",
+      "test": "Camera feeds configuration API",
+      "expected": "HTTP 200 with active cameras",
+      "actual": "HTTP 200 with 3 cameras",
+      "status": "PASS",
+      "details": "Cameras: ['DVR', 'Local Web Cam', 'NVR']"
+    },
+    {
+      "module": "Attendance Reports",
+      "test": "Attendance detailed report API",
+      "expected": "HTTP 200 with report records",
+      "actual": "HTTP 200 with 38 records",
+      "status": "PASS",
+      "details": "Reports generation engine intact"
+    },
+    {
+      "module": "Dashboard",
+      "test": "Dashboard KPI stats API",
+      "expected": "HTTP 200 with total_users and present count",
+      "actual": "HTTP 200 with total_users=38",
+      "status": "PASS",
+      "details": "KPIs: {'absent_users': 38, 'avg_confidence': 0.5546602148182731, 'present_users': 0, 'recent_entries': [{'confidence': 0.42286568880081177, 'name': 'Imran Khalid', 'timestamp': '2026-10-07 17:10:53'}, {'confidence': 0.42624905705451965, 'name': 'Malaika Irshad', 'timestamp': '2026-10-07 10:34:05'}, {'confidence': 0.42022231221199036, 'name': 'Malaika Irshad', 'timestamp': '2026-10-07 10:32:42'}, {'confidence': 0.48052114248275757, 'name': 'Imran Khalid', 'timestamp': '2026-10-07 10:31:30'}, {'confidence': 0.4601846933364868, 'name': 'Imran Khalid', 'timestamp': '2026-10-03 08:58:15'}, {'confidence': 0.42059314250946045, 'name': 'Sir Qaisar Shahen', 'timestamp': '2026-10-02 16:01:43'}, {'confidence': 0.45876896381378174, 'name': 'Sir Umer - GS', 'timestamp': '2026-10-02 12:20:02'}, {'confidence': 0.4131890833377838, 'name': 'Ubaid', 'timestamp': '2026-10-02 10:03:23'}, {'confidence': 0.4812728464603424, 'name': 'Imran Khalid', 'timestamp': '2026-10-02 10:03:07'}, {'confidence': 0.6283495426177979, 'name': 'Ubaid', 'timestamp': '2026-10-02 10:03:04'}], 'timestamp': '2026-10-08T12:18:06.826179', 'today_attendance': 0, 'total_logs': 84, 'total_users': 38, 'unique_users_today': 0}"
+    },
+    {
+      "module": "API Suite",
+      "test": "GET /api/stats",
+      "expected": "HTTP 200",
+      "actual": "HTTP 200",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "module": "API Suite",
+      "test": "GET /api/users",
+      "expected": "HTTP 200",
+      "actual": "HTTP 200",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "module": "API Suite",
+      "test": "GET /api/departments",
+      "expected": "HTTP 200",
+      "actual": "HTTP 200",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "module": "API Suite",
+      "test": "GET /api/designations",
+      "expected": "HTTP 200",
+      "actual": "HTTP 200",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "module": "API Suite",
+      "test": "GET /api/shifts",
+      "expected": "HTTP 200",
+      "actual": "HTTP 200",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "module": "API Suite",
+      "test": "GET /api/cameras",
+      "expected": "HTTP 200",
+      "actual": "HTTP 200",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "module": "API Suite",
+      "test": "GET /api/settings/branch",
+      "expected": "HTTP 200",
+      "actual": "HTTP 200",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "module": "API Suite",
+      "test": "GET /api/payroll/rules",
+      "expected": "HTTP 200",
+      "actual": "HTTP 200",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "module": "API Suite",
+      "test": "GET /api/payroll/calendar",
+      "expected": "HTTP 200",
+      "actual": "HTTP 200",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "module": "API Suite",
+      "test": "GET /api/payroll/history",
+      "expected": "HTTP 200",
+      "actual": "HTTP 200",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "module": "API Suite",
+      "test": "GET /api/payroll?month=2026-10",
+      "expected": "HTTP 200",
+      "actual": "HTTP 200",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "module": "API Suite",
+      "test": "GET /api/reports/attendance?start_date=2026-10-01&end_date=2026-10-07",
+      "expected": "HTTP 200",
+      "actual": "HTTP 200",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "module": "API Suite",
+      "test": "GET /api/leave-types",
+      "expected": "HTTP 200",
+      "actual": "HTTP 200",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "module": "API Suite",
+      "test": "GET /api/leaves",
+      "expected": "HTTP 200",
+      "actual": "HTTP 200",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "module": "API Suite",
+      "test": "GET /api/leaves/balances?year=2026",
+      "expected": "HTTP 200",
+      "actual": "HTTP 200",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "module": "API Suite",
+      "test": "GET /api/holidays",
+      "expected": "HTTP 200",
+      "actual": "HTTP 200",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "module": "API Suite",
+      "test": "GET /api/salary",
+      "expected": "HTTP 200",
+      "actual": "HTTP 200",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "module": "API Suite",
+      "test": "GET /api/salary/summary",
+      "expected": "HTTP 200",
+      "actual": "HTTP 200",
+      "status": "PASS",
+      "details": ""
+    }
+  ]
+}

@@ -1,0 +1,232 @@
+[
+  {
+    "section": "1. Excel Export",
+    "test": "openpyxl module is installed and imported in environment",
+    "expected": "openpyxl version >= 3.0",
+    "actual": "openpyxl version: 3.1.5",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "1. Excel Export",
+    "test": "GET /api/reports/export/excel returns HTTP 200 with valid .xlsx workbook",
+    "expected": "HTTP 200, valid openpyxl workbook, sheets=['Attendance Report'], max_row > 10",
+    "actual": "HTTP 200, len=8499b, valid=True, sheets=['Attendance Report'], rows=47",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "1. Excel Export",
+    "test": "GET /api/reports/attendance/export alias route returns valid .xlsx workbook",
+    "expected": "HTTP 200, Content-Type=xlsx, Length > 1000 bytes",
+    "actual": "HTTP 200, Length: 8499 bytes",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "2. Overtime API",
+    "test": "API POST /api/overtime creates overtime record with status='pending'",
+    "expected": "HTTP 201 with success=True and integer id",
+    "actual": "HTTP 201, id=27, json={'id': 27, 'success': True}",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "2. Overtime API",
+    "test": "Overtime record persists to SQLite with correct rate and amount",
+    "expected": "status='pending', hours=3.5, ot_rate > 0, ot_amount > 0",
+    "actual": "status=pending, hours=3.5, rate=1201.92, amount=4206.72",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "2. Overtime API",
+    "test": "API PUT /api/overtime/<id> approves overtime",
+    "expected": "HTTP 200, status='approved', approved_by='Admin'",
+    "actual": "HTTP 200, status=approved, by=Admin",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "2. Overtime API",
+    "test": "API PUT /api/overtime/<id> rejects overtime",
+    "expected": "HTTP 200, status='rejected'",
+    "actual": "HTTP 200, status=rejected",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "2. Overtime API",
+    "test": "API DELETE /api/overtime/<id> deletes overtime record from SQLite",
+    "expected": "HTTP 200, record not in SQLite",
+    "actual": "HTTP 200, found_in_db=False",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "3. Overtime -> Payroll",
+    "test": "Payroll includes ONLY approved overtime hours (pending/rejected excluded)",
+    "expected": "overtime_hours == 3.0",
+    "actual": "overtime_hours = 3.0",
+    "status": "PASS",
+    "details": "Pending (5.0 hrs) and Rejected (4.0 hrs) were correctly excluded",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "3. Overtime -> Payroll",
+    "test": "Payroll consumes employee's configured ot_rate",
+    "expected": "overtime_rate == 1201.92",
+    "actual": "overtime_rate = 1201.92",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "3. Overtime -> Payroll",
+    "test": "Payroll calculates exact overtime payout: 3.0 × 1201.92 = PKR 3,605.76",
+    "expected": "overtime_amount == 3605.76",
+    "actual": "overtime_amount = 3605.76",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "4. Salary -> Payroll",
+    "test": "Payroll consumes configured allowances from salary_configs",
+    "expected": "allowances == 35000.0",
+    "actual": "allowances = 35000.0",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "4. Salary -> Payroll",
+    "test": "Payroll consumes configured fixed custom deductions from salary_configs",
+    "expected": "custom_deductions == 10000.0",
+    "actual": "custom_deductions = 10000.0",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "4. Salary -> Payroll",
+    "test": "Payroll Gross Salary formula: Basic + Allowances + Overtime Pay = PKR 288,605.76",
+    "expected": "gross_salary == 288605.76",
+    "actual": "gross_salary = 288605.76",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "4. Salary -> Payroll",
+    "test": "Payroll Net Salary formula: Gross − Fixed Deductions − Absence Deductions",
+    "expected": "net_salary == 253605.76",
+    "actual": "net_salary = 253605.76",
+    "status": "PASS",
+    "details": "Gross=288605.76, Fixed=10000.0, Absence=25000.0, Net=253605.76",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "5. Overtime UI",
+    "test": "DOM Page View: Dedicated Overtime View (#overtime-view) exists in index.html",
+    "expected": "True",
+    "actual": "True",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "5. Overtime UI",
+    "test": "Sidebar navigation: Overtime Management menu item exists",
+    "expected": "True",
+    "actual": "True",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "5. Overtime UI",
+    "test": "Modal dialog: Log Overtime Modal (#addOvertimeModal) exists",
+    "expected": "True",
+    "actual": "True",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "5. Overtime UI",
+    "test": "Table body: Overtime records table (#overtimeTableBody) exists",
+    "expected": "True",
+    "actual": "True",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "5. Overtime UI",
+    "test": "Metric cards: KPI counters (Total, Approved Hours, Approved Pay) exist",
+    "expected": "True",
+    "actual": "True",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "5. Overtime UI",
+    "test": "Client JavaScript: loadOvertimeRecords, updateOvertimeStatus, deleteOvertimeRecord defined",
+    "expected": "True",
+    "actual": "True",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "6. DB Integrity",
+    "test": "SQLite database PRAGMA integrity_check is OK",
+    "expected": "[('ok',)]",
+    "actual": "[('ok',)]",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  },
+  {
+    "section": "6. DB Integrity",
+    "test": "SQLite database PRAGMA foreign_key_check has 0 violations",
+    "expected": "[]",
+    "actual": "[]",
+    "status": "PASS",
+    "details": "",
+    "severity": "NONE",
+    "affected_modules": ""
+  }
+]

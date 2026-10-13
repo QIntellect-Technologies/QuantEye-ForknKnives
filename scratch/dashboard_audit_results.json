@@ -1,0 +1,232 @@
+[
+  {
+    "test_id": "DSH-01",
+    "action": "Verify #dashboard-view structure and KPI card IDs in index.html",
+    "expected": "All elements (dashboard-view, valEnrolled, valAttendance, valRecords, logsContainer, logSyncStatus) exist",
+    "actual": "dashboard_view=True, enrolled=True, att=True, rec=True, logs=True, sync=True",
+    "passed": true,
+    "evidence": "DOM elements for dashboard metrics verified",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "DSH-02",
+    "action": "Verify safe null-checks for tickerTotal* elements in loadStats()",
+    "expected": "Safe null-guards exist for tickerTotalStudents, tickerTotalPresent, tickerTotalAbsent",
+    "actual": "guards_present=True",
+    "passed": true,
+    "evidence": "Safe null-checks in loadStats() eliminate TypeError when elements are absent from DOM",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "DSH-03",
+    "action": "Verify #reports-view analytics container, KPI cards, dept grid, date presets",
+    "expected": "All elements exist in DOM",
+    "actual": "reports_view=True, stats=True, grid=True, presets=True",
+    "passed": true,
+    "evidence": "Live attendance reports and analytics DOM elements verified",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "DSH-04",
+    "action": "Reconcile GET /api/stats KPI metrics directly against SQLite",
+    "expected": "total_users=38, total_logs=84, today_att=0, present=0, absent=38",
+    "actual": "HTTP 200: total_users=38, total_logs=84, today_att=0, present=0, absent=38",
+    "passed": true,
+    "evidence": "API stats response: {'absent_users': 38, 'avg_confidence': 0.5546602148182731, 'present_users': 0, 'recent_entries': [{'confidence': 0.42286568880081177, 'name': 'Imran Khalid', 'timestamp': '2026-10-07 17:10:53'}, {'confidence': 0.42624905705451965, 'name': 'Malaika Irshad', 'timestamp': '2026-10-07 10:34:05'}, {'confidence': 0.42022231221199036, 'name': 'Malaika Irshad', 'timestamp': '2026-10-07 10:32:42'}, {'confidence': 0.48052114248275757, 'name': 'Imran Khalid', 'timestamp': '2026-10-07 10:31:30'}, {'confidence': 0.4601846933364868, 'name': 'Imran Khalid', 'timestamp': '2026-10-03 08:58:15'}, {'confidence': 0.42059314250946045, 'name': 'Sir Qaisar Shahen', 'timestamp': '2026-10-02 16:01:43'}, {'confidence': 0.45876896381378174, 'name': 'Sir Umer - GS', 'timestamp': '2026-10-02 12:20:02'}, {'confidence': 0.4131890833377838, 'name': 'Ubaid', 'timestamp': '2026-10-02 10:03:23'}, {'confidence': 0.4812728464603424, 'name': 'Imran Khalid', 'timestamp': '2026-10-02 10:03:07'}, {'confidence': 0.6283495426177979, 'name': 'Ubaid', 'timestamp': '2026-10-02 10:03:04'}], 'timestamp': '2026-10-08T17:10:50.273616', 'today_attendance': 0, 'total_logs': 84, 'total_users': 38, 'unique_users_today': 0}",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "DSH-05",
+    "action": "Reconcile GET /api/attendance/logs (Top 15 Recent Activity) against SQLite",
+    "expected": "count=15, latest_id=5424",
+    "actual": "count=15, latest_id=5424",
+    "passed": true,
+    "evidence": "Recent logs verified: first 3 IDs = [5424, 5423, 5422]",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "DSH-06",
+    "action": "Verify recent attendance logs chronological sort order (DESC)",
+    "expected": "Each log timestamp >= subsequent log timestamp",
+    "actual": "is_sorted_desc=True",
+    "passed": true,
+    "evidence": "Log ordering verified strictly descending by timestamp",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "DSH-07",
+    "action": "GET /api/reports/attendance?date=today",
+    "expected": "total_enrolled=38, present=0, absent=38",
+    "actual": "enrolled=38, present=0, absent=38",
+    "passed": true,
+    "evidence": "Today summary: {'absent': 38, 'attendance_rate': 0.0, 'attended_count': 0, 'late': 0, 'present': 0, 'total_absent_days': 38, 'total_enrolled': 38, 'total_late_days': 0, 'total_matching': 38, 'total_present_days': 0, 'total_registered': 38, 'zero_attendance_count': 38}",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "DSH-08",
+    "action": "GET /api/reports/attendance?date=yesterday",
+    "expected": "total_enrolled=38, present=2, absent=36",
+    "actual": "enrolled=38, present=2, absent=36",
+    "passed": true,
+    "evidence": "Yesterday summary: {'absent': 36, 'attendance_rate': 5.3, 'attended_count': 2, 'late': 0, 'present': 2, 'total_absent_days': 36, 'total_enrolled': 38, 'total_late_days': 0, 'total_matching': 38, 'total_present_days': 2, 'total_registered': 38, 'zero_attendance_count': 36}",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "DSH-09",
+    "action": "GET /api/reports/attendance?date=last7",
+    "expected": "HTTP 200, is_multi_day=True, multi-day summary metrics present",
+    "actual": "HTTP 200, is_multi_day=True, attended_count=5",
+    "passed": true,
+    "evidence": "Last7 summary: {'absent': 221, 'attendance_rate': 2.6, 'attended_count': 5, 'late': 2, 'present': 7, 'total_absent_days': 221, 'total_enrolled': 38, 'total_late_days': 2, 'total_matching': 38, 'total_present_days': 7, 'total_registered': 38, 'zero_attendance_count': 33}",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "DSH-10",
+    "action": "GET /api/reports/attendance?date=this_week",
+    "expected": "HTTP 200 with summary metrics",
+    "actual": "HTTP 200, summary=True",
+    "passed": true,
+    "evidence": "This week summary: {'absent': 150, 'attendance_rate': 1.3, 'attended_count': 2, 'late': 0, 'present': 2, 'total_absent_days': 150, 'total_enrolled': 38, 'total_late_days': 0, 'total_matching': 38, 'total_present_days': 2, 'total_registered': 38, 'zero_attendance_count': 36}",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "DSH-11",
+    "action": "GET /api/reports/attendance?date=this_month",
+    "expected": "HTTP 200, total_enrolled=38",
+    "actual": "HTTP 200, enrolled=38, rate=2.6%",
+    "passed": true,
+    "evidence": "This month summary: {'absent': 258, 'attendance_rate': 2.6, 'attended_count': 5, 'late': 3, 'present': 8, 'total_absent_days': 258, 'total_enrolled': 38, 'total_late_days': 3, 'total_matching': 38, 'total_present_days': 8, 'total_registered': 38, 'zero_attendance_count': 33}",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "DSH-12",
+    "action": "GET /api/reports/attendance with custom date range (2026-10-01 to 2026-10-07)",
+    "expected": "HTTP 200, total_days=7, is_multi_day=True",
+    "actual": "HTTP 200, total_days=7, attended=5",
+    "passed": true,
+    "evidence": "Custom range summary: {'absent': 220, 'attendance_rate': 3.0, 'attended_count': 5, 'late': 3, 'present': 8, 'total_absent_days': 220, 'total_enrolled': 38, 'total_late_days': 3, 'total_matching': 38, 'total_present_days': 8, 'total_registered': 38, 'zero_attendance_count': 33}",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "DSH-13",
+    "action": "Reconcile Department Breakdown headcount grid against SQLite",
+    "expected": "Exact department counts match: {'AI & Data Science': 1, 'Academic & Training': 16, 'Computer Science': 1, 'Executive Management': 1, 'FnK Operations': 5, 'Human Resources': 2, 'Operations & Management': 1, 'Sales & Marketing': 3, 'Software Development': 7, 'Software Engineering': 1}",
+    "actual": "API breakdown counts: {'AI & Data Science': 1, 'Academic & Training': 16, 'Computer Science': 1, 'Executive Management': 1, 'FnK Operations': 5, 'Human Resources': 2, 'Operations & Management': 1, 'Sales & Marketing': 3, 'Software Development': 7, 'Software Engineering': 1}",
+    "passed": true,
+    "evidence": "Department breakdown matches SQLite: True",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "DSH-14",
+    "action": "GET /api/reports/attendance?department=AI & Data Science",
+    "expected": "Returns exactly 1 records belonging to \"AI & Data Science\"",
+    "actual": "HTTP 200, count=1",
+    "passed": true,
+    "evidence": "Filtered department records: count=1",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "DSH-15",
+    "action": "GET /api/reports/attendance?department=NonexistentQA99",
+    "expected": "HTTP 200 with empty records list (records=[])",
+    "actual": "HTTP 200, records_count=0",
+    "passed": true,
+    "evidence": "Empty state returned cleanly: {'attendance_rate': 0.0, 'attended_count': 0, 'total_absent_days': 0, 'total_enrolled': 0, 'total_late_days': 0, 'total_matching': 0, 'total_present_days': 0, 'zero_attendance_count': 0}",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "DSH-16",
+    "action": "Verify immediate update of /api/stats KPI metrics upon new attendance detection",
+    "expected": "today_attendance=1, present_users=1, total_logs=85",
+    "actual": "today_attendance=1, present=1, logs=85",
+    "passed": true,
+    "evidence": "Updated stats: {'absent_users': 37, 'avg_confidence': 0.5593112711145287, 'present_users': 1, 'recent_entries': [{'confidence': 0.95, 'name': 'Imran Khalid', 'timestamp': '2026-10-08 17:10:50'}, {'confidence': 0.42286568880081177, 'name': 'Imran Khalid', 'timestamp': '2026-10-07 17:10:53'}, {'confidence': 0.42624905705451965, 'name': 'Malaika Irshad', 'timestamp': '2026-10-07 10:34:05'}, {'confidence': 0.42022231221199036, 'name': 'Malaika Irshad', 'timestamp': '2026-10-07 10:32:42'}, {'confidence': 0.48052114248275757, 'name': 'Imran Khalid', 'timestamp': '2026-10-07 10:31:30'}, {'confidence': 0.4601846933364868, 'name': 'Imran Khalid', 'timestamp': '2026-10-03 08:58:15'}, {'confidence': 0.42059314250946045, 'name': 'Sir Qaisar Shahen', 'timestamp': '2026-10-02 16:01:43'}, {'confidence': 0.45876896381378174, 'name': 'Sir Umer - GS', 'timestamp': '2026-10-02 12:20:02'}, {'confidence': 0.4131890833377838, 'name': 'Ubaid', 'timestamp': '2026-10-02 10:03:23'}, {'confidence': 0.4812728464603424, 'name': 'Imran Khalid', 'timestamp': '2026-10-02 10:03:07'}], 'timestamp': '2026-10-08T17:10:50.444582', 'today_attendance': 1, 'total_logs': 85, 'total_users': 38, 'unique_users_today': 1}",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "DSH-17",
+    "action": "Verify latest attendance log appears immediately at top of /api/attendance/logs",
+    "expected": "Latest log: name=\"Imran Khalid\", source=\"qa_audit_stream\"",
+    "actual": "Top log: name=\"Imran Khalid\", source=\"qa_audit_stream\"",
+    "passed": true,
+    "evidence": "Top log payload: {'confidence': 0.95, 'detected_name': 'Imran Khalid', 'device_id': 'cam_audit_01', 'id': 5495, 'location': 'Main Gate', 'name': 'Imran Khalid', 'source': 'qa_audit_stream', 'timestamp': '2026-10-08T22:10:50+05:00'}",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "DSH-18",
+    "action": "HEAD /api/stats",
+    "expected": "HTTP 200 OK",
+    "actual": "HTTP 200",
+    "passed": true,
+    "evidence": "HTTP HEAD supported",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "DSH-19",
+    "action": "GET /api/attendance/logs?limit=-5",
+    "expected": "HTTP 200 with logs list or empty list, no 500 crash",
+    "actual": "HTTP 200",
+    "passed": true,
+    "evidence": "Response keys: ['logs', 'server_time']",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "DSH-20",
+    "action": "GET /api/reports/attendance with inverted dates (start > end)",
+    "expected": "HTTP 200, handles inverted range gracefully without 500 error",
+    "actual": "HTTP 200",
+    "passed": true,
+    "evidence": "Response summary: {'absent': 0, 'attendance_rate': 0.0, 'attended_count': 0, 'late': 0, 'present': 0, 'total_absent_days': 0, 'total_enrolled': 38, 'total_late_days': 0, 'total_matching': 38, 'total_present_days': 0, 'total_registered': 38, 'zero_attendance_count': 38}",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "DSH-21",
+    "action": "Cross-Module: Verify Branch & Organization Settings identity on Dashboard",
+    "expected": "Branch: \"QIntellect Technologies\", Organization: \"QIntellect Technologies\" reflected in UI",
+    "actual": "branch_found=True, org_found=True",
+    "passed": true,
+    "evidence": "Identity: QIntellect Technologies | QIntellect Technologies",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "DSH-22",
+    "action": "Cross-Module: Payroll & Salary Anchor Verification (Employee #38)",
+    "expected": "Basic 250k, Allowances 35k, Deductions 10k, OT 3605.76, Gross 288,605.76, Net 253,605.76",
+    "actual": "Gross=288605.76, Net=253605.76",
+    "passed": true,
+    "evidence": "Employee #38 anchor: Basic=250000.0, Net=253605.76",
+    "severity": null,
+    "affects": null
+  },
+  {
+    "test_id": "DSH-23",
+    "action": "Database baseline row counts & integrity check after Dashboard audit",
+    "expected": "All 12 tables match pre-audit baseline, PRAGMA integrity_check=ok, PRAGMA foreign_key_check=0",
+    "actual": "counts_match=True, ic=ok, fk=0 violations",
+    "passed": true,
+    "evidence": "Post counts: {'users': 38, 'departments': 10, 'designations': 23, 'shifts': 2, 'attendance': 84, 'leave_requests': 1, 'overtime': 0, 'salary_configs': 37, 'payroll_records': 106, 'embeddings': 3872, 'branch_settings': 1, 'employee_shift_history': 38}",
+    "severity": null,
+    "affects": null
+  }
+]

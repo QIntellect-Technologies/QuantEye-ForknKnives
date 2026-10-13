@@ -2657,9 +2657,14 @@
           max-width: none;
         }
       }
+
+      /* Cloud Mode Exclusions: Hide non-cloud items when body has class cloud-mode */
+      body.cloud-mode .cloud-hide {
+        display: none !important;
+      }
     </style>
   </head>
-  <body>
+  <body class="{{ 'cloud-mode' if is_cloud else '' }}">
     <!-- Global Floating Toast Container -->
     <div id="toastContainer" class="app-toast-container" aria-live="polite"></div>
 
@@ -2699,7 +2704,7 @@
         </li>
         <li
           id="enrollMenuSidebarItem"
-          class="menu-item"
+          class="menu-item cloud-hide"
           onclick="switchTab('enroll-view', this)"
           title="Staff Enrollment"
           style="display:none;"
@@ -2716,7 +2721,7 @@
           <span>Staff Directory</span>
         </li>
         <li
-          class="menu-item"
+          class="menu-item cloud-hide"
           onclick="switchTab('payroll-view', this)"
           title="Payroll"
         >
@@ -2724,7 +2729,7 @@
           <span>Payroll</span>
         </li>
         <li
-          class="menu-item"
+          class="menu-item cloud-hide"
           onclick="switchTab('leaves-view', this)"
           title="Leave & Holiday Management"
         >
@@ -2732,7 +2737,7 @@
           <span>Leave &amp; Holidays</span>
         </li>
         <li
-          class="menu-item"
+          class="menu-item cloud-hide"
           onclick="switchTab('overtime-view', this)"
           title="Overtime Management"
         >
@@ -2748,7 +2753,7 @@
           <span>Shift Management</span>
         </li>
         <li
-          class="menu-item"
+          class="menu-item cloud-hide"
           onclick="switchTab('live-view', this)"
           title="Live AI Attendance"
         >
@@ -5051,10 +5056,10 @@ async function fetchMultiLiveDetections() {
           <p class="page-subtitle">View and manage enrolled staff members.</p>
         </div>
         <div class="page-header-actions">
-          <button onclick="openBulkCameraModal()" class="btn btn-outline" style="width:auto; padding:9px 18px; font-size:0.88em; border-color:#3d9fd4; color:#247eae; font-weight:700;">
+          <button onclick="openBulkCameraModal()" class="btn btn-outline cloud-hide" style="width:auto; padding:9px 18px; font-size:0.88em; border-color:#3d9fd4; color:#247eae; font-weight:700;">
             <i class="fa-solid fa-camera-rotate"></i> Bulk Camera Assignment
           </button>
-          <button onclick="openTabAddStaffModal()" class="btn btn-primary shadow" style="width:auto; padding:9px 20px; font-size:0.88em; background:#3d9fd4; border:none; font-weight:700;">
+          <button onclick="openTabAddStaffModal()" class="btn btn-primary shadow cloud-hide" style="width:auto; padding:9px 20px; font-size:0.88em; background:#3d9fd4; border:none; font-weight:700;">
             <i class="fa-solid fa-user-plus"></i> + Add New Staff
           </button>
           <button id="refreshStaffDirectoryBtn" type="button" onclick="loadTabStaffDirectory(true)" class="btn btn-outline" style="width:auto; padding:9px 18px; font-size:0.88em; border-color:#3d9fd4; color:#247eae;">
@@ -5229,22 +5234,25 @@ async function fetchMultiLiveDetections() {
       <button class="btn btn-sm settings-nav-btn active" onclick="switchSettingsTab('branch-tab', this)" style="border-radius: 8px; font-weight: 700;">
         <i class="fa-solid fa-building"></i> Branch & Organization
       </button>
-      <button class="btn btn-sm settings-nav-btn" onclick="switchSettingsTab('depts-tab', this)" style="border-radius: 8px; font-weight: 700;">
+      <button class="btn btn-sm settings-nav-btn" onclick="switchSettingsTab('license-tab', this)" style="border-radius: 8px; font-weight: 700;">
+        <i class="fa-solid fa-key"></i> License Key Generator
+      </button>
+      <button class="btn btn-sm settings-nav-btn cloud-hide" onclick="switchSettingsTab('depts-tab', this)" style="border-radius: 8px; font-weight: 700;">
         <i class="fa-solid fa-sitemap"></i> Department Management
       </button>
-      <button class="btn btn-sm settings-nav-btn" onclick="switchSettingsTab('desigs-tab', this)" style="border-radius: 8px; font-weight: 700;">
+      <button class="btn btn-sm settings-nav-btn cloud-hide" onclick="switchSettingsTab('desigs-tab', this)" style="border-radius: 8px; font-weight: 700;">
         <i class="fa-solid fa-id-badge"></i> Designation Management
       </button>
-      <button class="btn btn-sm settings-nav-btn" onclick="switchSettingsTab('cameras-tab', this)" style="border-radius: 8px; font-weight: 700;">
+      <button class="btn btn-sm settings-nav-btn cloud-hide" onclick="switchSettingsTab('cameras-tab', this)" style="border-radius: 8px; font-weight: 700;">
         <i class="fa-solid fa-video"></i> Camera Management
       </button>
-      <button class="btn btn-sm settings-nav-btn" onclick="switchSettingsTab('payroll-rules-tab', this)" style="border-radius: 8px; font-weight: 700;">
+      <button class="btn btn-sm settings-nav-btn cloud-hide" onclick="switchSettingsTab('payroll-rules-tab', this)" style="border-radius: 8px; font-weight: 700;">
         <i class="fa-solid fa-percent"></i> Payroll Rules
       </button>
-      <button class="btn btn-sm settings-nav-btn" onclick="switchSettingsTab('payroll-calendar-tab', this)" style="border-radius: 8px; font-weight: 700;">
+      <button class="btn btn-sm settings-nav-btn cloud-hide" onclick="switchSettingsTab('payroll-calendar-tab', this)" style="border-radius: 8px; font-weight: 700;">
         <i class="fa-solid fa-calendar-days"></i> Payroll Calendar
       </button>
-      <button id="salaryConfigNavBtn" class="btn btn-sm settings-nav-btn" onclick="switchSettingsTab('salary-config-tab', this)" style="border-radius: 8px; font-weight: 700;">
+      <button id="salaryConfigNavBtn" class="btn btn-sm settings-nav-btn cloud-hide" onclick="switchSettingsTab('salary-config-tab', this)" style="border-radius: 8px; font-weight: 700;">
         <i class="fa-solid fa-file-invoice-dollar"></i> Employee Salary Structure
       </button>
     </div>
@@ -5289,6 +5297,83 @@ async function fetchMultiLiveDetections() {
             </button>
           </div>
         </form>
+      </div>
+    </div>
+
+    <!-- TAB: LICENSE KEY GENERATOR (CLOUD SETTINGS) -->
+    <div id="license-tab" class="settings-sub-tab" style="display: none;">
+      <div class="card p-4 shadow-sm" style="max-width: 900px; background: #ffffff; border: 1px solid #cfe8f7; border-radius: 16px;">
+        <h3 style="font-size: 1.15em; font-weight: 800; color: #173042; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+          <i class="fa-solid fa-key" style="color: #3d9fd4;"></i> Installation License Key Generator
+        </h3>
+        <p style="font-size: 0.88em; color: #64748b; margin-bottom: 18px;">
+          Generate installation-specific HMAC-SHA256 licenses bound to edge attendance machine installations.
+        </p>
+
+        <form id="licenseGenFormExisting" onsubmit="event.preventDefault(); generateCloudLicenseKey();">
+          <div class="row g-3">
+            <div class="col-md-5">
+              <label class="form-label font-weight-bold" style="color: #475569; font-size: 0.85em;">Installation / Hardware ID *</label>
+              <input type="text" id="settingLicInstId" class="form-control" placeholder="e.g. inst-pilot-001" required style="border-radius: 8px;">
+              <small class="text-muted" style="font-size:0.75rem;">Unique ID of the local edge attendance machine.</small>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label font-weight-bold" style="color: #475569; font-size: 0.85em;">Validity Duration</label>
+              <select id="settingLicDuration" class="form-select" style="border-radius: 8px;">
+                <option value="3">3 Days (Testing Pilot)</option>
+                <option value="7">7 Days</option>
+                <option value="30" selected>30 Days (Monthly)</option>
+                <option value="90">90 Days (Quarterly)</option>
+                <option value="365">365 Days (Yearly)</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label font-weight-bold" style="color: #475569; font-size: 0.85em;">Max Employees</label>
+              <input type="number" id="settingLicMaxEmp" class="form-control" value="5" min="1" style="border-radius: 8px;">
+            </div>
+          </div>
+
+          <div style="margin-top: 18px; text-align: right;">
+            <button type="submit" class="btn btn-primary px-4" style="border-radius: 8px; font-weight: 700; background: #3d9fd4; border: none;">
+              <i class="fa-solid fa-wand-magic-sparkles me-1"></i> Generate License Key
+            </button>
+          </div>
+        </form>
+
+        <div id="licenseResultBox" class="mt-4 p-3 border rounded-3" style="display:none; background: #f8fafc; border-color: #cbd5e1 !important;">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="fw-bold text-success"><i class="fa-solid fa-circle-check"></i> License Generated Successfully</span>
+            <button class="btn btn-sm btn-outline-primary" onclick="copyExistingLicenseKey()">
+              <i class="fa-solid fa-copy"></i> Copy License
+            </button>
+          </div>
+          <div style="font-family: monospace; background: #ffffff; padding: 10px 12px; border-radius: 6px; border: 1px solid #cbd5e1; word-break: break-all; font-size: 0.9rem;" id="settingLicKeyText"></div>
+          <div class="d-flex gap-4 mt-2 text-muted" style="font-size: 0.8rem;">
+            <div>Bound Installation: <strong id="settingLicBoundInst"></strong></div>
+            <div>Expires: <strong id="settingLicBoundExpiry"></strong></div>
+          </div>
+        </div>
+
+        <div class="mt-4 pt-3 border-top">
+          <h5 style="font-size: 0.95em; font-weight: 700; color: #475569; margin-bottom: 12px;">Issued Licenses For This Installation</h5>
+          <div class="table-responsive">
+            <table class="table table-sm table-hover" style="font-size: 0.85em;">
+              <thead>
+                <tr class="table-light">
+                  <th>License ID</th>
+                  <th>Installation</th>
+                  <th>Issued</th>
+                  <th>Expires</th>
+                  <th>Limit</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="issuedLicensesTableExisting">
+                <tr><td colspan="6" class="text-center py-3 text-muted">No licenses recorded yet.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -5891,7 +5976,7 @@ async function fetchMultiLiveDetections() {
     </div>
 
     <!-- ======== ADMIN CONTROLS PANEL (visible only when unlocked) ======== -->
-    <div id="adminControlsPanel" style="display:none; margin-top: 32px;">
+    <div id="adminControlsPanel" class="cloud-hide" style="display:none; margin-top: 32px;">
       <div class="card p-4 shadow-sm" style="background: #0f172a; border: 1px solid #1e3a5f; border-radius: 16px; max-width: 860px;">
         <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px;">
           <i class="fa-solid fa-shield-halved" style="color:#3d9fd4; font-size:1.5em;"></i>
@@ -11539,11 +11624,11 @@ async function fetchMultiLiveDetections() {
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                   ${graceBadge}
                   <div style="display:flex; gap:6px; align-items:center;">
-                    ${!s.is_default ? `<button class="btn btn-sm btn-outline-success" onclick="setDefaultShift(${s.id}, '${s.name}')" style="padding:4px 8px; font-size:0.78em;" title="Set as Default Shift"><i class="fa-solid fa-star"></i> Set Default</button>` : ''}
-                    <button class="btn btn-sm btn-outline-primary" onclick="openEditShiftModal(${s.id}, '${s.name}', '${s.start_time}', '${s.end_time}', ${s.grace_period_minutes}, ${JSON.stringify(s.working_days || [0, 1, 2, 3, 4, 5])}, ${s.checkout_grace_period_minutes || 0})" style="padding:4px 10px; font-size:0.8em;">
+                    ${!s.is_default ? `<button class="btn btn-sm btn-outline-success" onclick="setDefaultShift('${s.id}', '${s.name}')" style="padding:4px 8px; font-size:0.78em;" title="Set as Default Shift"><i class="fa-solid fa-star"></i> Set Default</button>` : ''}
+                    <button class="btn btn-sm btn-outline-primary" onclick="openEditShiftModal('${s.id}', '${s.name}', '${s.start_time}', '${s.end_time}', ${s.grace_period_minutes}, ${JSON.stringify(s.working_days || [0, 1, 2, 3, 4, 5])}, ${s.checkout_grace_period_minutes || 0})" style="padding:4px 10px; font-size:0.8em;">
                       <i class="fa-solid fa-pen-to-square"></i> Edit
                     </button>
-                    ${!s.is_default ? `<button class="btn btn-sm btn-outline-danger" onclick="deleteShift(${s.id}, '${s.name}')" style="padding:4px 10px; font-size:0.8em;" title="Delete Shift"><i class="fa-solid fa-trash"></i></button>` : ''}
+                    ${!s.is_default ? `<button class="btn btn-sm btn-outline-danger" onclick="deleteShift('${s.id}', '${s.name}')" style="padding:4px 10px; font-size:0.8em;" title="Delete Shift"><i class="fa-solid fa-trash"></i></button>` : ''}
                   </div>
                 </div>
               </div>
@@ -11584,11 +11669,11 @@ async function fetchMultiLiveDetections() {
                 </td>
                 <td style="padding:12px 16px; font-weight:700; color:#475569;">${s.user_count || 0} Staff</td>
                 <td style="padding:12px 16px; text-align:right;">
-                  ${!s.is_default ? `<button class="btn btn-sm btn-outline-success me-1" onclick="setDefaultShift(${s.id}, '${s.name}')" title="Set as Default Shift"><i class="fa-solid fa-star"></i> Set Default</button>` : ''}
-                  <button class="btn btn-sm btn-outline-primary me-1" onclick="openEditShiftModal(${s.id}, '${s.name}', '${s.start_time}', '${s.end_time}', ${s.grace_period_minutes}, ${JSON.stringify(s.working_days || [0, 1, 2, 3, 4, 5])}, ${s.checkout_grace_period_minutes || 0})">
+                  ${!s.is_default ? `<button class="btn btn-sm btn-outline-success me-1" onclick="setDefaultShift('${s.id}', '${s.name}')" title="Set as Default Shift"><i class="fa-solid fa-star"></i> Set Default</button>` : ''}
+                  <button class="btn btn-sm btn-outline-primary me-1" onclick="openEditShiftModal('${s.id}', '${s.name}', '${s.start_time}', '${s.end_time}', ${s.grace_period_minutes}, ${JSON.stringify(s.working_days || [0, 1, 2, 3, 4, 5])}, ${s.checkout_grace_period_minutes || 0})">
                     <i class="fa-solid fa-pen-to-square"></i>
                   </button>
-                  ${!s.is_default ? `<button class="btn btn-sm btn-outline-danger" onclick="deleteShift(${s.id}, '${s.name}')"><i class="fa-solid fa-trash"></i></button>` : ''}
+                  ${!s.is_default ? `<button class="btn btn-sm btn-outline-danger" onclick="deleteShift('${s.id}', '${s.name}')"><i class="fa-solid fa-trash"></i></button>` : ''}
                 </td>
               </tr>
             `;
@@ -11771,6 +11856,7 @@ async function fetchMultiLiveDetections() {
 
         const SUBTAB_CONFIG = {
           'branch-tab': { title: 'Settings', subtitle: 'Manage organization, branch, staff, shift, and system configuration.' },
+          'license-tab': { title: 'License Key Generator', subtitle: 'Generate and manage HMAC-SHA256 licenses bound to edge attendance machine installations.' },
           'depts-tab': { title: 'Department Management', subtitle: 'Manage departments used across the organization.' },
           'desigs-tab': { title: 'Designation Management', subtitle: 'Manage department-specific staff designations.' },
           'cameras-tab': { title: 'Camera Management', subtitle: 'Configure and manage attendance cameras.' },
@@ -11786,6 +11872,7 @@ async function fetchMultiLiveDetections() {
         }
 
         if (tabId === 'branch-tab') loadBranchSettings();
+        else if (tabId === 'license-tab') loadCloudLicensesList();
         else if (tabId === 'depts-tab') loadDepartmentsTable();
         else if (tabId === 'desigs-tab') loadDesignationsTable();
         else if (tabId === 'cameras-tab') loadCamerasGrid();
@@ -11795,6 +11882,78 @@ async function fetchMultiLiveDetections() {
         }
         else if (tabId === 'payroll-calendar-tab') loadPayrollCalendar();
         else if (tabId === 'salary-config-tab') loadSalaryConfigs();
+      }
+
+      async function generateCloudLicenseKey() {
+        const instId = document.getElementById('settingLicInstId')?.value.trim();
+        const days = parseInt(document.getElementById('settingLicDuration')?.value || '30');
+        const maxEmp = parseInt(document.getElementById('settingLicMaxEmp')?.value || '5');
+        if (!instId) {
+          alert('Installation ID is required');
+          return;
+        }
+        try {
+          const resp = await fetch('/api/v1/settings/licenses/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              org_id: 'org-default',
+              branch_id: 'branch-main',
+              installation_id: instId,
+              days_valid: days,
+              max_employees: maxEmp
+            })
+          });
+          const data = await resp.json();
+          if (!resp.ok) throw new Error(data.error || 'Failed to generate license');
+
+          document.getElementById('settingLicKeyText').textContent = data.license_key;
+          document.getElementById('settingLicBoundInst').textContent = data.installation_id;
+          document.getElementById('settingLicBoundExpiry').textContent = new Date(data.expires_at).toLocaleString();
+          document.getElementById('licenseResultBox').style.display = 'block';
+          showAppToast('License key generated successfully', 'success');
+          loadCloudLicensesList();
+        } catch (e) {
+          alert('Error: ' + e.message);
+        }
+      }
+
+      function copyExistingLicenseKey() {
+        const text = document.getElementById('settingLicKeyText')?.textContent;
+        if (text) {
+          navigator.clipboard.writeText(text).then(() => {
+            showAppToast('License key copied to clipboard!', 'success');
+          });
+        }
+      }
+
+      async function loadCloudLicensesList() {
+        const tbody = document.getElementById('issuedLicensesTableExisting');
+        if (!tbody) return;
+        try {
+          const resp = await fetch('/api/v1/settings/licenses?branch_id=branch-main');
+          const data = await resp.json();
+          const list = data.licenses || [];
+          if (list.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-3 text-muted">No licenses issued yet.</td></tr>';
+            return;
+          }
+          tbody.innerHTML = list.map(l => {
+            const isExp = new Date() > new Date(l.expires_at);
+            return `
+              <tr>
+                <td><code>${l.id}</code></td>
+                <td><strong>${l.installation_id}</strong></td>
+                <td>${new Date(l.issued_at).toLocaleDateString()}</td>
+                <td>${new Date(l.expires_at).toLocaleDateString()}</td>
+                <td><span class="badge bg-light text-dark border">${l.max_employees} Staff</span></td>
+                <td><span class="badge ${isExp ? 'bg-danger' : 'bg-success'}">${isExp ? 'Expired' : 'Active'}</span></td>
+              </tr>
+            `;
+          }).join('');
+        } catch (e) {
+          tbody.innerHTML = '<tr><td colspan="6" class="text-center py-3 text-muted">No licenses recorded.</td></tr>';
+        }
       }
 
       async function reloadSystemConfiguration(showRefreshState = false) {

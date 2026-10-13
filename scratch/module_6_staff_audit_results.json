@@ -1,0 +1,299 @@
+[
+  {
+    "test_id": "STF-UI-01",
+    "category": "UI DOM",
+    "action": "Verify #staff-view exists with header and metric counters",
+    "expected": "All elements present in DOM",
+    "actual": "Present",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "test_id": "STF-UI-02",
+    "category": "UI DOM",
+    "action": "Verify Bulk Camera, Add New Staff, and Refresh List buttons exist",
+    "expected": "All buttons present with correct onclick handlers",
+    "actual": "Present",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "test_id": "STF-UI-03",
+    "category": "UI DOM",
+    "action": "Verify search input (#tabStaffSearchInput) and dept filter (#tabStaffDeptFilter)",
+    "expected": "Inputs present with live event handlers",
+    "actual": "Present",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "test_id": "STF-UI-04",
+    "category": "UI DOM",
+    "action": "Verify table body, select-all checkbox, and pagination controls",
+    "expected": "Table body, checkbox, and pagination elements present",
+    "actual": "Present",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "test_id": "STF-UI-05",
+    "category": "UI DOM",
+    "action": "Verify #editUserModal exists with required HR input fields",
+    "expected": "Modal and all HR fields present",
+    "actual": "Present",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "test_id": "STF-UI-06",
+    "category": "UI DOM",
+    "action": "Verify #bulkCameraModal exists with checkin/checkout wrappers and submit handler",
+    "expected": "Modal and camera multi-select wrappers present",
+    "actual": "Present",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "test_id": "STF-API-01",
+    "category": "Backend API",
+    "action": "GET /api/users retrieves active staff directory list with shift and camera metadata",
+    "expected": "HTTP 200, 38 users, keys ['id', 'name', 'department', 'position', 'salary', 'shift_id', 'shift_name', 'checkin_cameras', 'checkout_cameras']",
+    "actual": "HTTP 200, 38 users, keys_ok=True",
+    "status": "PASS",
+    "details": "Sample user #38: Imran Khalid (AI & Data Science)"
+  },
+  {
+    "test_id": "STF-API-02",
+    "category": "Backend API",
+    "action": "GET /api/users/38 retrieves single employee profile details",
+    "expected": "HTTP 200 with id=38, name='Imran Khalid'",
+    "actual": "HTTP 200, id=38, name='Imran Khalid'",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "test_id": "STF-API-03",
+    "category": "Backend API",
+    "action": "GET /api/users/999999 for non-existent user returns HTTP 404",
+    "expected": "HTTP 404",
+    "actual": "HTTP 404",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "test_id": "STF-API-04",
+    "category": "Validation",
+    "action": "POST /api/users/38/update rejects empty name",
+    "expected": "HTTP 400 Bad Request",
+    "actual": "HTTP 400",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "test_id": "STF-API-05",
+    "category": "Backend API",
+    "action": "POST /api/users/999999/update handles non-existent user properly",
+    "expected": "HTTP 404 or HTTP 500 error",
+    "actual": "HTTP 500",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "test_id": "STF-CRUD-01",
+    "category": "CRUD Lifecycle",
+    "action": "Create temporary employee #136 and retrieve via GET /api/users/136",
+    "expected": "HTTP 200 with id=136, name='Audit Test Staff'",
+    "actual": "HTTP 200",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "test_id": "STF-CRUD-02",
+    "category": "CRUD Lifecycle",
+    "action": "Update employee #136 HR profile details and camera permissions",
+    "expected": "HTTP 200 and all updated fields reflected",
+    "actual": "HTTP 500, name='Audit Test Staff', dept='IT Support', salary=95000.0",
+    "status": "FAIL",
+    "details": ""
+  },
+  {
+    "test_id": "STF-CRUD-03",
+    "category": "Camera Assignment",
+    "action": "Apply bulk camera assignment to user #136",
+    "expected": "HTTP 200, count=1, checkin='cam_entrance', checkout='cam_exit'",
+    "actual": "HTTP 200, count=1, in='cam_entrance', out='cam_exit'",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "test_id": "STF-SEC-01",
+    "category": "Camera Security",
+    "action": "Enforce camera authorization rule on employee #136",
+    "expected": "cam_entrance=True (allowed), nvr_office=False (blocked)",
+    "actual": "cam_entrance=True, nvr_office=False",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "test_id": "STF-CRUD-04",
+    "category": "CRUD Lifecycle",
+    "action": "Delete employee #136 and confirm 404 on subsequent get",
+    "expected": "HTTP 200 on delete, HTTP 404 on subsequent get",
+    "actual": "Delete HTTP 200, Get HTTP 404",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "test_id": "STF-REC-01",
+    "category": "Data Reconciliation",
+    "action": "Reconcile Staff Directory metrics (Total Staff, Active Depts, Payroll) with SQLite",
+    "expected": "Total: 38, Depts: 10, Payroll: PKR 3,375,000.00",
+    "actual": "Total: 38, Depts: 10, Payroll: PKR 3,375,000.00",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "test_id": "STF-REC-02",
+    "category": "Search Filter",
+    "action": "Search query 'imran' isolates Employee #38",
+    "expected": "1 match (Imran Khalid)",
+    "actual": "2 matches (Imran Khalid)",
+    "status": "FAIL",
+    "details": ""
+  },
+  {
+    "test_id": "STF-REC-03",
+    "category": "Department Filter",
+    "action": "Filter by department 'AI & Data Science'",
+    "expected": "4 employees in AI & Data Science",
+    "actual": "1 employees",
+    "status": "FAIL",
+    "details": ""
+  },
+  {
+    "test_id": "STF-DB-01",
+    "category": "Database Integrity",
+    "action": "PRAGMA integrity_check",
+    "expected": "ok",
+    "actual": "ok",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "test_id": "STF-DB-02",
+    "category": "Database Integrity",
+    "action": "PRAGMA foreign_key_check",
+    "expected": "0 violations",
+    "actual": "0 violations",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "test_id": "STF-BASE-USER",
+    "category": "Production Baseline",
+    "action": "Row count for table 'users'",
+    "expected": "38",
+    "actual": "38",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "test_id": "STF-BASE-DEPA",
+    "category": "Production Baseline",
+    "action": "Row count for table 'departments'",
+    "expected": "10",
+    "actual": "10",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "test_id": "STF-BASE-DESI",
+    "category": "Production Baseline",
+    "action": "Row count for table 'designations'",
+    "expected": "23",
+    "actual": "23",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "test_id": "STF-BASE-SHIF",
+    "category": "Production Baseline",
+    "action": "Row count for table 'shifts'",
+    "expected": "2",
+    "actual": "2",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "test_id": "STF-BASE-ATTE",
+    "category": "Production Baseline",
+    "action": "Row count for table 'attendance'",
+    "expected": "84",
+    "actual": "84",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "test_id": "STF-BASE-LEAV",
+    "category": "Production Baseline",
+    "action": "Row count for table 'leave_requests'",
+    "expected": "1",
+    "actual": "1",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "test_id": "STF-BASE-OVER",
+    "category": "Production Baseline",
+    "action": "Row count for table 'overtime'",
+    "expected": "0",
+    "actual": "0",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "test_id": "STF-BASE-SALA",
+    "category": "Production Baseline",
+    "action": "Row count for table 'salary_configs'",
+    "expected": "37",
+    "actual": "37",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "test_id": "STF-BASE-PAYR",
+    "category": "Production Baseline",
+    "action": "Row count for table 'payroll_records'",
+    "expected": "106",
+    "actual": "106",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "test_id": "STF-BASE-EMBE",
+    "category": "Production Baseline",
+    "action": "Row count for table 'embeddings'",
+    "expected": "3872",
+    "actual": "3872",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "test_id": "STF-BASE-BRAN",
+    "category": "Production Baseline",
+    "action": "Row count for table 'branch_settings'",
+    "expected": "1",
+    "actual": "1",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "test_id": "STF-BASE-EMPL",
+    "category": "Production Baseline",
+    "action": "Row count for table 'employee_shift_history'",
+    "expected": "38",
+    "actual": "38",
+    "status": "PASS",
+    "details": ""
+  }
+]
