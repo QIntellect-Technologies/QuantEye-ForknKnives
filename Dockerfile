@@ -1,29 +1,14 @@
 FROM python:3.10-slim
 
-# Set working directory
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    libgl1 \
-    libglib2.0-0t64 \
-    libsm6 \
-    libxext6 \
-    libxrender1 \
-    libgomp1 \
-    && rm -rf /var/lib/apt/lists/*
+COPY requirements-cloud.txt .
 
-# Copy requirements
-COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements-cloud.txt
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy application code
 COPY . .
 
-# Create directories
-RUN mkdir -p logs uploads models
+RUN mkdir -p logs
 
 # Expose port
 EXPOSE 5050
@@ -33,4 +18,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD python -c "import os,urllib.request; urllib.request.urlopen('http://localhost:'+os.environ.get('PORT','5050')+'/health')"
 
 # Run application
-CMD ["python", "-m", "cloud.app"]
+CMD ["sh", "-c", "exec gunicorn --bind 0.0.0.0:${PORT:-5050} cloud.app:app"]
