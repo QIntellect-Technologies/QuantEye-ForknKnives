@@ -30,7 +30,7 @@ os.environ['CLOUD_SECRET_KEY'] = 'test-secret-key-phase1-validation'
 from cloud.db import (
     init_cloud_db, get_db_connection, get_organizations, get_branches,
     create_shift, get_shifts, create_or_sync_staff, get_staff_list,
-    ingest_attendance_batch, query_attendance_reports
+    ingest_attendance_batch, query_attendance_reports, set_staff_attendance_status
 )
 from cloud.license import generate_license_key, verify_license_key
 from cloud.app import create_cloud_app
@@ -256,6 +256,44 @@ class TestCloudPhase1Integration(unittest.TestCase):
         )
         self.assertEqual(assignment['shift_id'], assigned_shift_id)
         self.assertEqual(assignment['effective_from'], datetime.now(timezone.utc).date().isoformat())
+
+    def test_05c_new_checkin_clears_cloud_manual_absence_for_the_day(self):
+        employee = get_staff_list(branch_id='branch-main', active_only=True)[0]
+        target_date = (datetime.now(timezone.utc).date() + timedelta(days=1)).isoformat()
+        user_id = employee['local_user_id']
+        staff_id = employee['id']
+
+        result = set_staff_attendance_status(
+            user_id=str(user_id), target_date=target_date, status='absent'
+        )
+        self.assertIsNotNone(result)
+
+        summary = ingest_attendance_batch(
+            org_id='org-default',
+            branch_id='branch-main',
+            installation_id='inst-absence-override-test',
+            events=[{
+                'local_attendance_id': 87654321,
+                'user_id': user_id,
+                'employee_name': employee['name'],
+                'timestamp': f'{target_date} 09:01:00',
+                'event_type': 'checkin',
+                'status': 'present',
+            }],
+            db_path=TEST_CLOUD_DB,
+        )
+
+        with get_db_connection(TEST_CLOUD_DB) as conn:
+            day_events = conn.execute(
+                'SELECT installation_id, status, source FROM cloud_attendance_events '
+                'WHERE staff_id = ? AND DATE(timestamp) = ?',
+                (staff_id, target_date)
+            ).fetchall()
+
+        self.assertEqual(summary['accepted'], 1)
+        self.assertEqual(len(day_events), 1)
+        self.assertEqual(day_events[0]['status'], 'present')
+        self.assertEqual(day_events[0]['source'], '')
 
     def test_06_attendance_batch_ingestion_and_duplicate_prevention(self):
         """
