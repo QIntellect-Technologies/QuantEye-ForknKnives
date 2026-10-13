@@ -611,6 +611,115 @@ def delete_staff(staff_id: str, db_path: Optional[Path] = None) -> bool:
         return cur.rowcount > 0
 
 
+def set_staff_attendance_status(
+    user_id: str,
+    target_date: Optional[str],
+    status: str,
+    check_in_time: Optional[str] = None,
+    check_out_time: Optional[str] = None,
+    notes: str = '',
+    db_path: Optional[Path] = None
+) -> Optional[Dict[str, Any]]:
+    """Apply a manual attendance correction for one selected deployment employee and date."""
+    normalized_status = str(status or '').strip().lower()
+    if normalized_status not in {'present', 'absent'}:
+        raise ValueError('Attendance status must be present or absent')
+
+    if not target_date or str(target_date).lower() == 'today':
+        target_date = datetime.now(timezone.utc).date().isoformat()
+    target = datetime.strptime(str(target_date), '%Y-%m-%d').date()
+    date_key = int(target.strftime('%Y%m%d'))
+
+    def make_timestamp(time_value: Optional[str], fallback: str) -> str:
+        value = str(time_value or fallback).strip()
+        parsed = datetime.strptime(f'{target.isoformat()} {value}', '%Y-%m-%d %H:%M')
+        return parsed.strftime('%Y-%m-%d %H:%M:%S')
+
+    check_in_timestamp = make_timestamp(check_in_time, '09:00') if normalized_status == 'present' else None
+    check_out_timestamp = make_timestamp(check_out_time, '17:00') if normalized_status == 'present' and check_out_time else None
+
+    with get_db_connection(db_path) as conn:
+        staff = conn.execute(
+            'SELECT * FROM cloud_staff WHERE branch_id = ? AND (CAST(local_user_id AS TEXT) = ? OR id = ?)',
+            ('branch-main', str(user_id), str(user_id))
+        ).fetchone()
+        if not staff:
+            return None
+
+        staff = dict(staff)
+        existing = conn.execute(
+            'SELECT id, event_type FROM cloud_attendance_events WHERE staff_id = ? AND DATE(timestamp) = ?',
+            (staff['id'], target.isoformat())
+        ).fetchall()
+        if existing:
+            conn.execute(
+                '''UPDATE cloud_attendance_events
+                   SET status = ?, marked_by = 'Admin', source = 'manual',
+                       notes = CASE WHEN ? != '' THEN ? ELSE notes END
+                   WHERE staff_id = ? AND DATE(timestamp) = ?''',
+                (normalized_status, notes, notes, staff['id'], target.isoformat())
+            )
+            if check_in_timestamp:
+                checkin_row = next((row for row in existing if str(row['event_type']).lower() in {'checkin', 'check-in'}), None)
+                if checkin_row:
+                    conn.execute('UPDATE cloud_attendance_events SET timestamp = ? WHERE id = ?', (check_in_timestamp, checkin_row['id']))
+            if check_out_timestamp:
+                checkout_row = next((row for row in existing if str(row['event_type']).lower() in {'checkout', 'check-out'}), None)
+                if checkout_row:
+                    conn.execute('UPDATE cloud_attendance_events SET timestamp = ? WHERE id = ?', (check_out_timestamp, checkout_row['id']))
+                else:
+                    conn.execute(
+                        '''INSERT INTO cloud_attendance_events (
+                               id, org_id, branch_id, installation_id, local_attendance_id,
+                               staff_id, employee_name, timestamp, event_type, status,
+                               confidence, location, source, marked_by, notes
+                           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'checkout', ?, 1.0, '', 'manual', 'Admin', ?)
+                           ON CONFLICT(installation_id, local_attendance_id) DO UPDATE SET
+                               staff_id = excluded.staff_id,
+                               employee_name = excluded.employee_name,
+                               timestamp = excluded.timestamp,
+                               event_type = excluded.event_type,
+                               status = excluded.status,
+                               source = excluded.source,
+                               marked_by = excluded.marked_by,
+                               notes = excluded.notes''',
+                        (f"att-{uuid.uuid4().hex[:12]}", staff['org_id'], staff['branch_id'],
+                         f"cloud-admin:{staff['id']}", date_key * 2 + 1, staff['id'],
+                         staff['name'], check_out_timestamp, normalized_status, notes)
+                    )
+            conn.commit()
+            return {'staff_id': staff['id'], 'user_id': staff['local_user_id'], 'date': target.isoformat(), 'status': normalized_status}
+
+        installation_id = f"cloud-admin:{staff['id']}"
+        base_local_id = date_key * 2
+        manual_events = [
+            (base_local_id, 'checkin', check_in_timestamp or f'{target.isoformat()} 00:00:00')
+        ]
+        if check_out_timestamp:
+            manual_events.append((base_local_id + 1, 'checkout', check_out_timestamp))
+        for local_id, event_type, timestamp in manual_events:
+            conn.execute(
+                '''INSERT INTO cloud_attendance_events (
+                       id, org_id, branch_id, installation_id, local_attendance_id,
+                       staff_id, employee_name, timestamp, event_type, status,
+                       confidence, location, source, marked_by, notes
+                   ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1.0, '', 'manual', 'Admin', ?)
+                   ON CONFLICT(installation_id, local_attendance_id) DO UPDATE SET
+                       staff_id = excluded.staff_id,
+                       employee_name = excluded.employee_name,
+                       timestamp = excluded.timestamp,
+                       event_type = excluded.event_type,
+                       status = excluded.status,
+                       source = excluded.source,
+                       marked_by = excluded.marked_by,
+                       notes = excluded.notes''',
+                (f"att-{uuid.uuid4().hex[:12]}", staff['org_id'], staff['branch_id'], installation_id,
+                 local_id, staff['id'], staff['name'], timestamp, event_type, normalized_status, notes)
+            )
+        conn.commit()
+        return {'staff_id': staff['id'], 'user_id': staff['local_user_id'], 'date': target.isoformat(), 'status': normalized_status}
+
+
 
 # -------------------------------------------------------------
 # Transactional Batch Attendance Ingestion with Duplicate Prevention
@@ -786,7 +895,24 @@ def query_attendance_reports(
     """
     with get_db_connection(db_path) as conn:
         query = '''
-            SELECT a.*, s.department, s.position, sh.name as shift_name
+            SELECT a.*,
+                   s.local_user_id AS user_id,
+                   COALESCE(s.name, a.employee_name) AS name,
+                   DATE(a.timestamp) AS date,
+                   CASE
+                       WHEN LOWER(a.event_type) IN ('checkin', 'check-in')
+                            AND LOWER(a.status) IN ('present', 'late', 'checked_out')
+                       THEN a.timestamp
+                       ELSE NULL
+                   END AS first_seen,
+                   CASE
+                       WHEN LOWER(a.event_type) IN ('checkout', 'check-out')
+                       THEN a.timestamp
+                       ELSE NULL
+                   END AS last_seen,
+                   a.camera_id AS checkin_camera,
+                   a.location AS checkin_location,
+                   s.department, s.position, sh.name as shift_name
             FROM cloud_attendance_events a
             LEFT JOIN cloud_staff s ON a.staff_id = s.id
             LEFT JOIN cloud_shifts sh ON s.shift_id = sh.id

@@ -348,12 +348,52 @@ class TestCloudPhase1Integration(unittest.TestCase):
         self.assertGreater(report['count'], 0)
         self.assertIn('summary', report)
         self.assertIn('total_records', report['summary'])
+        record = report['records'][0]
+        self.assertIsNotNone(record.get('user_id'))
+        self.assertTrue(record.get('name'))
+        self.assertTrue(record.get('date'))
+        self.assertIn('first_seen', record)
+        self.assertIn('checkin_camera', record)
+        self.assertEqual(report['summary']['total_enrolled'], 5)
         
         # Test CSV export
         res_csv = self.client.get('/api/v1/reports/?format=csv', headers=self.admin_headers)
         self.assertEqual(res_csv.status_code, 200)
         self.assertIn('text/csv', res_csv.headers['Content-Type'])
         self.assertIn("Sikander FnK", res_csv.data.decode('utf-8'))
+
+    def test_09a_today_filter_and_report_quick_actions(self):
+        today = datetime.now(timezone.utc).date().isoformat()
+        absent_response = self.client.post(
+            '/api/users/95/mark-absent',
+            json={'date': today}
+        )
+        self.assertEqual(absent_response.status_code, 200, absent_response.get_json())
+
+        report_response = self.client.get(
+            '/api/v1/reports/?date=today',
+            headers=self.admin_headers
+        )
+        self.assertEqual(report_response.status_code, 200)
+        absent_record = next(record for record in report_response.get_json()['records'] if record['user_id'] == 95)
+        self.assertEqual(absent_record['name'], 'Sikander FnK')
+        self.assertEqual(absent_record['date'], today)
+        self.assertEqual(absent_record['status'], 'absent')
+        self.assertIsNone(absent_record['first_seen'])
+
+        present_response = self.client.post(
+            '/api/users/95/mark-present',
+            json={'date': today, 'check_in_time': '09:10', 'check_out_time': '17:00', 'notes': 'Corrected'}
+        )
+        self.assertEqual(present_response.status_code, 200, present_response.get_json())
+        report_response = self.client.get(
+            '/api/v1/reports/?date=today',
+            headers=self.admin_headers
+        )
+        records = [record for record in report_response.get_json()['records'] if record['user_id'] == 95]
+        self.assertEqual(len(records), 2)
+        self.assertTrue(any(record['first_seen'] == f'{today} 09:10:00' for record in records))
+        self.assertTrue(any(record['last_seen'] == f'{today} 17:00:00' for record in records))
 
     def test_10_concurrent_batch_ingestion(self):
         """Verify concurrent sync requests handle transactions without data loss or SQLite deadlocks."""

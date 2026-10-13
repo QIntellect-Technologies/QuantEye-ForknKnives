@@ -22,6 +22,7 @@ from cloud.db import (
     init_cloud_db,
     get_staff_list,
     get_staff_by_id,
+    set_staff_attendance_status,
     query_attendance_reports,
     get_shifts,
     get_branches,
@@ -227,6 +228,40 @@ def create_cloud_app(init_db_on_start: bool = True) -> Flask:
         if not _assign_staff_shift(str(user_id), str(shift_id)):
             return jsonify({"success": False, "error": "Staff member or shift assignment not found"}), 404
         return jsonify({"success": True, "message": "Shift assigned successfully"}), 200
+
+    @app.route("/api/users/<user_id>/mark-present", methods=['POST'])
+    def api_user_mark_present_shim(user_id):
+        data = request.get_json(silent=True) or {}
+        try:
+            result = set_staff_attendance_status(
+                user_id=str(user_id),
+                target_date=data.get('date'),
+                status='present',
+                check_in_time=data.get('check_in_time'),
+                check_out_time=data.get('check_out_time'),
+                notes=str(data.get('notes') or '')
+            )
+        except ValueError as error:
+            return jsonify({"success": False, "error": str(error)}), 400
+        if not result:
+            return jsonify({"success": False, "error": "Staff member not found"}), 404
+        return jsonify({"success": True, "message": "Attendance marked present", "attendance": result}), 200
+
+    @app.route("/api/users/<user_id>/mark-absent", methods=['POST'])
+    def api_user_mark_absent_shim(user_id):
+        data = request.get_json(silent=True) or {}
+        try:
+            result = set_staff_attendance_status(
+                user_id=str(user_id),
+                target_date=data.get('date'),
+                status='absent',
+                notes=str(data.get('notes') or '')
+            )
+        except ValueError as error:
+            return jsonify({"success": False, "error": str(error)}), 400
+        if not result:
+            return jsonify({"success": False, "error": "Staff member not found"}), 404
+        return jsonify({"success": True, "message": "Attendance marked absent", "attendance": result}), 200
 
     @app.route("/api/users/bulk-assign-shifts", methods=['POST'])
     def api_user_bulk_assign_shifts_shim():
