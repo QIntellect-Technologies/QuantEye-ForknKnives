@@ -5365,11 +5365,12 @@ async function fetchMultiLiveDetections() {
                   <th>Issued</th>
                   <th>Expires</th>
                   <th>Limit</th>
+                  <th>License Key</th>
                   <th>Status</th>
                 </tr>
               </thead>
               <tbody id="issuedLicensesTableExisting">
-                <tr><td colspan="6" class="text-center py-3 text-muted">No licenses recorded yet.</td></tr>
+                <tr><td colspan="7" class="text-center py-3 text-muted">No licenses recorded yet.</td></tr>
               </tbody>
             </table>
           </div>
@@ -11927,6 +11928,20 @@ async function fetchMultiLiveDetections() {
         }
       }
 
+      async function copySavedCloudLicense(button) {
+        const licenseKey = button?.dataset.licenseKey || '';
+        if (!licenseKey) {
+          showAppToast('No saved license key is available to copy.', 'error');
+          return;
+        }
+        try {
+          await navigator.clipboard.writeText(licenseKey);
+          showAppToast('Saved license key copied to clipboard.', 'success');
+        } catch (error) {
+          showAppToast('Could not access the clipboard. Check browser permissions.', 'error');
+        }
+      }
+
       async function loadCloudLicensesList() {
         const tbody = document.getElementById('issuedLicensesTableExisting');
         if (!tbody) return;
@@ -11935,7 +11950,7 @@ async function fetchMultiLiveDetections() {
           const data = await resp.json();
           const list = data.licenses || [];
           if (list.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-3 text-muted">No licenses issued yet.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center py-3 text-muted">No licenses issued yet.</td></tr>';
             return;
           }
           tbody.innerHTML = list.map(l => {
@@ -11947,12 +11962,13 @@ async function fetchMultiLiveDetections() {
                 <td>${new Date(l.issued_at).toLocaleDateString()}</td>
                 <td>${new Date(l.expires_at).toLocaleDateString()}</td>
                 <td><span class="badge bg-light text-dark border">${l.max_employees} Staff</span></td>
+                <td><button type="button" class="btn btn-sm btn-outline-primary" data-license-key="${l.license_key || ''}" onclick="copySavedCloudLicense(this)" ${l.license_key ? '' : 'disabled'}><i class="fa-solid fa-copy"></i> Copy Key</button></td>
                 <td><span class="badge ${isExp ? 'bg-danger' : 'bg-success'}">${isExp ? 'Expired' : 'Active'}</span></td>
               </tr>
             `;
           }).join('');
         } catch (e) {
-          tbody.innerHTML = '<tr><td colspan="6" class="text-center py-3 text-muted">No licenses recorded.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="7" class="text-center py-3 text-muted">No licenses recorded.</td></tr>';
         }
       }
 
