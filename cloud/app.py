@@ -7,6 +7,7 @@ or imported into test suites.
 import sys
 import secrets
 import logging
+import os
 from pathlib import Path
 from flask import Flask, jsonify, request, session, render_template, make_response
 from flask_cors import CORS
@@ -42,7 +43,7 @@ def create_cloud_app(init_db_on_start: bool = True) -> Flask:
     root_templates = Path(__file__).resolve().parent.parent / "templates"
     root_static = Path(__file__).resolve().parent.parent / "static"
     app = Flask(__name__, template_folder=str(root_templates), static_folder=str(root_static))
-    app.secret_key = "cloud-secret-session-key-qintellect"
+    app.secret_key = os.environ.get('FLASK_SECRET_KEY') or secrets.token_urlsafe(32)
     CORS(app)
     
     # Register blueprints under cloud API prefix
@@ -256,5 +257,6 @@ def create_cloud_app(init_db_on_start: bool = True) -> Flask:
 app = create_cloud_app()
 
 if __name__ == '__main__':
-    logger.info("Starting QIntellect Cloud Attendance Service on port 5050...")
-    app.run(host='0.0.0.0', port=5050, debug=False)
+    port = int(os.environ.get('PORT', '5050'))
+    logger.info("Starting QIntellect Cloud Attendance Service on port %s...", port)
+    app.run(host='0.0.0.0', port=port, debug=False)

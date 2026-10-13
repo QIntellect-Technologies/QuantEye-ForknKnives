@@ -26,11 +26,11 @@ COPY . .
 RUN mkdir -p logs uploads models
 
 # Expose port
-EXPOSE 5000
+EXPOSE 5050
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:5000/api/health')"
+    CMD python -c "import os,urllib.request; urllib.request.urlopen('http://localhost:'+os.environ.get('PORT','5050')+'/health')"
 
 # Run application
-CMD ["python", "app.py"]
+CMD ["python", "-m", "cloud.app"]
