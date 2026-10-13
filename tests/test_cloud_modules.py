@@ -256,6 +256,11 @@ class TestCloudPhase1Integration(unittest.TestCase):
         )
         self.assertEqual(assignment['shift_id'], assigned_shift_id)
         self.assertEqual(assignment['effective_from'], datetime.now(timezone.utc).date().isoformat())
+        shift_summary = next(
+            shift for shift in get_shifts(branch_id='branch-main')
+            if shift['id'] == assigned_shift_id
+        )
+        self.assertEqual(shift_summary['user_count'], 1)
 
     def test_05c_new_checkin_clears_cloud_manual_absence_for_the_day(self):
         employee = get_staff_list(branch_id='branch-main', active_only=True)[0]

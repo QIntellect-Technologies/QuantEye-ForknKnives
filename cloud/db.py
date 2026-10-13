@@ -370,7 +370,15 @@ def get_licenses_for_branch(branch_id: str, db_path: Optional[Path] = None) -> L
 
 def get_shifts(branch_id: str, active_only: bool = True, db_path: Optional[Path] = None) -> List[Dict[str, Any]]:
     with get_db_connection(db_path) as conn:
-        query = "SELECT * FROM cloud_shifts WHERE branch_id = ?"
+        query = '''
+            SELECT sh.*,
+                   (SELECT COUNT(*) FROM cloud_staff st
+                    WHERE st.branch_id = sh.branch_id
+                      AND st.shift_id = sh.id
+                    AND st.active = 1) AS user_count
+            FROM cloud_shifts sh
+            WHERE sh.branch_id = ?
+        '''
         params: List[Any] = [branch_id]
         if active_only:
             query += " AND active = 1"
