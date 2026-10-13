@@ -11,7 +11,7 @@ Phase 1 Scope:
 
 from flask import Blueprint, request, jsonify
 from cloud.auth import validate_sync_credentials
-from cloud.db import ingest_attendance_batch, get_shifts
+from cloud.db import get_staff_list, ingest_attendance_batch, get_shifts
 
 sync_bp = Blueprint('cloud_sync', __name__)
 
@@ -27,12 +27,23 @@ def api_sync_shifts():
             "details": err_msg
         }), 403
 
-    shifts = get_shifts(branch_id=license_payload.get('branch_id'), active_only=False)
+    branch_id = license_payload.get('branch_id')
+    shifts = get_shifts(branch_id=branch_id, active_only=False)
+    staff_assignments = [
+        {
+            'local_user_id': staff.get('local_user_id'),
+            'shift_id': staff.get('shift_id'),
+            'effective_from': str(staff.get('updated_at') or '')[:10] or None,
+        }
+        for staff in get_staff_list(branch_id=branch_id, active_only=True)
+        if staff.get('local_user_id') is not None and staff.get('shift_id')
+    ]
     return jsonify({
         "success": True,
         "installation_id": license_payload.get('installation_id'),
-        "branch_id": license_payload.get('branch_id'),
-        "shifts": shifts
+        "branch_id": branch_id,
+        "shifts": shifts,
+        "staff_assignments": staff_assignments
     }), 200
 
 

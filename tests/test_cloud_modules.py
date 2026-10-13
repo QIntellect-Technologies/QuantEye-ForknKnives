@@ -215,6 +215,48 @@ class TestCloudPhase1Integration(unittest.TestCase):
         self.assertEqual(bulk_after['shift_id'], 'shift-morning-default')
         self.assertEqual(bulk_after['department'], bulk['department'])
 
+    def test_05b_shift_sync_returns_local_employee_assignments(self):
+        staff = get_staff_list(branch_id='branch-main', active_only=True)
+        employee = staff[0]
+        assigned_shift_id = create_shift(
+            org_id='org-default',
+            branch_id='branch-main',
+            name='Cloud Assignment Sync Test',
+            start_time='15:40',
+            end_time='17:00'
+        )
+        create_or_sync_staff(
+            org_id='org-default',
+            branch_id='branch-main',
+            name=employee['name'],
+            local_user_id=employee['local_user_id'],
+            shift_id=assigned_shift_id
+        )
+        installation_id = 'inst-assignment-sync-test'
+        license_key = generate_license_key(
+            'org-default',
+            'branch-main',
+            installation_id,
+            (datetime.now(timezone.utc) + timedelta(days=1)).isoformat()
+        )
+
+        response = self.client.get(
+            '/api/v1/sync/shifts',
+            headers={
+                'X-License-Key': license_key,
+                'X-Installation-Id': installation_id
+            }
+        )
+
+        self.assertEqual(response.status_code, 200, response.get_json())
+        payload = response.get_json()
+        assignment = next(
+            item for item in payload['staff_assignments']
+            if item['local_user_id'] == employee['local_user_id']
+        )
+        self.assertEqual(assignment['shift_id'], assigned_shift_id)
+        self.assertEqual(assignment['effective_from'], datetime.now(timezone.utc).date().isoformat())
+
     def test_06_attendance_batch_ingestion_and_duplicate_prevention(self):
         """
         Test transactional batch attendance syncing with strict duplicate prevention
