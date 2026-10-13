@@ -1,22 +1,21 @@
-version: '3.8'
-
 services:
   attendance-app:
     build: .
     ports:
-      - "5000:5000"
+      - "5050:5050"
+    env_file:
+      - path: .env
+        format: raw
     environment:
       - FLASK_ENV=production
       - PYTHONUNBUFFERED=1
-      - ENABLE_GPU=false
+      - CLOUD_DB_PATH=/data/cloud_attendance.db
     volumes:
+      - ./cloud_data:/data
       - ./logs:/app/logs
-      - ./uploads:/app/uploads
-      - ./models:/app/models
-      - ./attendance.db:/app/attendance.db
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5050/health', timeout=5)"]
       interval: 30s
       timeout: 10s
       retries: 3

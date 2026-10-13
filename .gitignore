@@ -54,6 +54,8 @@ tmp/
 
 # Local runtime data and credentials
 attendance*.db*
+cloud_attendance.db*
+cloud_data/
 database.db*
 *.db-journal
 logs/

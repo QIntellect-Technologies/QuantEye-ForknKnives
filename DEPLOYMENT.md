@@ -18,24 +18,23 @@ Complete guide to deploy the Flask AI Attendance System to production.
 ### Option 1: Docker CLI
 
 ```bash
-# Build image
-docker build -t attendance-app:latest .
+# Build image from the cloud project root
+docker build -t attendance-cloud:latest .
 
 # Run container
 docker run -d \
-  --name attendance \
-  -p 5000:5000 \
-  -v $(pwd)/logs:/app/logs \
-  -v $(pwd)/uploads:/app/uploads \
-  -v $(pwd)/models:/app/models \
-  -v $(pwd)/attendance.db:/app/attendance.db \
-  attendance-app:latest
+    --name attendance-cloud \
+    -p 5050:5050 \
+    --env-file .env \
+    -e CLOUD_DB_PATH=/data/cloud_attendance.db \
+    -v $(pwd)/cloud_data:/data \
+    attendance-cloud:latest
 
 # Check logs
-docker logs -f attendance
+docker logs -f attendance-cloud
 
 # Access
-http://localhost:5000
+http://localhost:5050
 ```
 
 ### Option 2: Docker Compose
@@ -48,10 +47,10 @@ docker-compose up -d
 docker-compose down
 
 # View logs
-docker-compose logs -f attendance-app
+docker compose logs -f attendance-app
 
 # Access
-http://localhost:5000
+http://localhost:5050
 ```
 
 ---
