@@ -161,11 +161,11 @@ class TestCloudPhase1Integration(unittest.TestCase):
     def test_05_staff_directory_for_5_employees(self):
         """Test managing directory for the 5 pilot employees."""
         employees = [
-            {"name": "Ali Raza", "department": "Operations", "position": "Officer", "local_user_id": 1},
-            {"name": "Fatima Noor", "department": "HR", "position": "HR Lead", "local_user_id": 2},
-            {"name": "Usman Tariq", "department": "IT", "position": "Engineer", "local_user_id": 3},
-            {"name": "Zainab Bibi", "department": "Finance", "position": "Accountant", "local_user_id": 4},
-            {"name": "Hamza Malik", "department": "Operations", "position": "Supervisor", "local_user_id": 5},
+            {"name": "Sikander FnK", "department": "FnK Operations", "position": "Floor Supervisor", "local_user_id": 95},
+            {"name": "Shahid Assistant Chef FnK", "department": "FnK Operations", "position": "Assistant Chef", "local_user_id": 96},
+            {"name": "Salman FnK", "department": "FnK Operations", "position": "Kitchen Specialist", "local_user_id": 97},
+            {"name": "Shoaib FnK", "department": "FnK Operations", "position": "Inventory Controller", "local_user_id": 98},
+            {"name": "Siddique FnK", "department": "FnK Operations", "position": "Procurement Officer", "local_user_id": 99},
         ]
         
         created_ids = []
@@ -183,6 +183,37 @@ class TestCloudPhase1Integration(unittest.TestCase):
         names_found = [s['name'] for s in staff_data]
         for emp in employees:
             self.assertIn(emp['name'], names_found)
+
+    def test_05a_individual_and_bulk_shift_assignment(self):
+        staff = get_staff_list(branch_id='branch-main', active_only=True)
+        individual, bulk = staff[0], staff[1]
+        new_shift = create_shift(
+            org_id='org-default',
+            branch_id='branch-main',
+            name='Assignment Test Shift',
+            start_time='10:00',
+            end_time='18:00'
+        )
+
+        individual_response = self.client.post(
+            f"/api/users/{individual['id']}/assign-shift",
+            json={'shift_id': new_shift}
+        )
+        self.assertEqual(individual_response.status_code, 200, individual_response.get_json())
+        individual_after = get_staff_list(branch_id='branch-main', active_only=True)
+        individual_after = next(staffer for staffer in individual_after if staffer['id'] == individual['id'])
+        self.assertEqual(individual_after['shift_id'], new_shift)
+        self.assertEqual(individual_after['department'], individual['department'])
+
+        bulk_response = self.client.post(
+            '/api/users/bulk-assign-shifts',
+            json={'user_ids': [bulk['id']], 'shift_id': 'shift-morning-default'}
+        )
+        self.assertEqual(bulk_response.status_code, 200, bulk_response.get_json())
+        bulk_after = get_staff_list(branch_id='branch-main', active_only=True)
+        bulk_after = next(staffer for staffer in bulk_after if staffer['id'] == bulk['id'])
+        self.assertEqual(bulk_after['shift_id'], 'shift-morning-default')
+        self.assertEqual(bulk_after['department'], bulk['department'])
 
     def test_06_attendance_batch_ingestion_and_duplicate_prevention(self):
         """
@@ -202,7 +233,8 @@ class TestCloudPhase1Integration(unittest.TestCase):
         batch_events = [
             {
                 "local_attendance_id": 1001,
-                "detected_name": "Ali Raza",
+                "detected_name": "Sikander FnK",
+                "user_id": 95,
                 "timestamp": "2026-10-10 09:02:15",
                 "confidence": 0.91,
                 "camera_id": "cam_gate_1",
@@ -212,7 +244,8 @@ class TestCloudPhase1Integration(unittest.TestCase):
             },
             {
                 "local_attendance_id": 1002,
-                "detected_name": "Fatima Noor",
+                "detected_name": "Shahid Assistant Chef FnK",
+                "user_id": 96,
                 "timestamp": "2026-10-10 09:05:40",
                 "confidence": 0.89,
                 "camera_id": "cam_gate_1",
@@ -222,7 +255,8 @@ class TestCloudPhase1Integration(unittest.TestCase):
             },
             {
                 "local_attendance_id": 1003,
-                "detected_name": "Usman Tariq",
+                "detected_name": "Shoaib FnK",
+                "user_id": 98,
                 "timestamp": "2026-10-10 09:12:05",
                 "confidence": 0.94,
                 "camera_id": "cam_gate_1",
@@ -263,13 +297,15 @@ class TestCloudPhase1Integration(unittest.TestCase):
             # 1. Duplicate (1001 was already ingested)
             {
                 "local_attendance_id": 1001,
-                "detected_name": "Ali Raza",
+                "detected_name": "Sikander FnK",
+                "user_id": 95,
                 "timestamp": "2026-10-10 09:02:15"
             },
             # 2. Brand new valid record
             {
                 "local_attendance_id": 1004,
-                "detected_name": "Zainab Bibi",
+                "detected_name": "Siddique FnK",
+                "user_id": 99,
                 "timestamp": "2026-10-10 09:15:30",
                 "event_type": "checkin"
             },
@@ -317,7 +353,7 @@ class TestCloudPhase1Integration(unittest.TestCase):
         res_csv = self.client.get('/api/v1/reports/?format=csv', headers=self.admin_headers)
         self.assertEqual(res_csv.status_code, 200)
         self.assertIn('text/csv', res_csv.headers['Content-Type'])
-        self.assertIn("Ali Raza", res_csv.data.decode('utf-8'))
+        self.assertIn("Sikander FnK", res_csv.data.decode('utf-8'))
 
     def test_10_concurrent_batch_ingestion(self):
         """Verify concurrent sync requests handle transactions without data loss or SQLite deadlocks."""
@@ -332,7 +368,8 @@ class TestCloudPhase1Integration(unittest.TestCase):
             events = [
                 {
                     "local_attendance_id": 2000 + (worker_id * 10) + i,
-                    "detected_name": f"Hamza Malik",
+                    "detected_name": "Salman FnK",
+                    "user_id": 97,
                     "timestamp": f"2026-10-11 1{worker_id}:0{i}:00",
                     "event_type": "checkout"
                 }

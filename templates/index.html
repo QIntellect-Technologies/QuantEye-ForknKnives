@@ -8802,8 +8802,8 @@ async function fetchMultiLiveDetections() {
             ? '<span class="badge badge-success" style="background:rgba(16,185,129,0.15); color:#10b981; border:1px solid rgba(16,185,129,0.3);"><i class="fa-solid fa-circle-check"></i> Present</span>'
             : '<span class="badge badge-danger" style="background:rgba(239,68,68,0.15); color:#f87171; border:1px solid rgba(239,68,68,0.2);"><i class="fa-solid fa-circle-xmark"></i> Absent</span>';
           const toggleBtn = present
-            ? `<button onclick="toggleUserAttendance(${user.id}, 'absent', '__N__')" class="btn-outline btn-danger" style="width:auto; padding:5px 10px; font-size:0.78em;"><i class="fa-solid fa-user-minus"></i> Absent</button>`
-            : `<button onclick="toggleUserAttendance(${user.id}, 'present', '__N__')" class="btn-outline" style="width:auto; padding:5px 10px; font-size:0.78em; border-color:#10b981; color:#10b981;"><i class="fa-solid fa-user-check"></i> Present</button>`;
+            ? `<button onclick="toggleUserAttendance('${user.id}', 'absent', '__N__')" class="btn-outline btn-danger" style="width:auto; padding:5px 10px; font-size:0.78em;"><i class="fa-solid fa-user-minus"></i> Absent</button>`
+            : `<button onclick="toggleUserAttendance('${user.id}', 'present', '__N__')" class="btn-outline" style="width:auto; padding:5px 10px; font-size:0.78em; border-color:#10b981; color:#10b981;"><i class="fa-solid fa-user-check"></i> Present</button>`;
           const safeName = (user.name || "").replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/"/g, "&quot;");
 
           html += `<tr>
@@ -8830,9 +8830,9 @@ async function fetchMultiLiveDetections() {
             <td style="text-align:right;">
               <div class="directory-actions" style="display:flex; gap:5px; justify-content:flex-end; flex-wrap:wrap;">
                 ${toggleBtn.replace("__N__", safeName)}
-                <button onclick="openEditModal(${user.id})" class="btn-outline" style="width:auto; padding:5px 10px; font-size:0.78em; border-color:var(--accent-primary); color:var(--accent-primary);" title="Edit"><i class="fa-solid fa-user-pen"></i></button>
-                <button onclick="openPhotoUpload(${user.id}, '${safeName}')" class="btn-outline" style="width:auto; padding:5px 10px; font-size:0.78em; border-color:#14b8a6; color:#14b8a6;" title="Photo"><i class="fa-solid fa-camera"></i></button>
-                <button onclick="deleteUserProfile(${user.id}, '${safeName}')" class="btn-outline btn-danger" style="width:auto; padding:5px 10px; font-size:0.78em;" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                <button onclick="openEditModal('${user.id}')" class="btn-outline" style="width:auto; padding:5px 10px; font-size:0.78em; border-color:var(--accent-primary); color:var(--accent-primary);" title="Edit"><i class="fa-solid fa-user-pen"></i></button>
+                <button onclick="openPhotoUpload('${user.id}', '${safeName}')" class="btn-outline" style="width:auto; padding:5px 10px; font-size:0.78em; border-color:#14b8a6; color:#14b8a6;" title="Photo"><i class="fa-solid fa-camera"></i></button>
+                <button onclick="deleteUserProfile('${user.id}', '${safeName}')" class="btn-outline btn-danger" style="width:auto; padding:5px 10px; font-size:0.78em;" title="Delete"><i class="fa-solid fa-trash"></i></button>
               </div>
             </td>
           </tr>`;
@@ -8841,7 +8841,7 @@ async function fetchMultiLiveDetections() {
       }
 
       function openEditModal(userId) {
-        const user = allEnrolledUsers.find((u) => u.id === userId);
+        const user = allEnrolledUsers.find((u) => String(u.id) === String(userId));
         if (!user) return;
 
         document.getElementById("editUserId").value = user.id;
@@ -10875,7 +10875,7 @@ async function fetchMultiLiveDetections() {
         checkboxes.forEach(cb => {
           cb.checked = checked;
           if (checked) {
-            selectedStaffIds.add(parseInt(cb.value));
+            selectedStaffIds.add(cb.value);
           }
         });
         updateBulkButtonBadge();
@@ -11011,11 +11011,11 @@ async function fetchMultiLiveDetections() {
 
           const checkinBadges = formatCameraBadges(s.checkin_cameras, false);
           const checkoutBadges = formatCameraBadges(s.checkout_cameras, true);
-          const isRowChecked = selectedStaffIds.has(s.id);
+          const isRowChecked = selectedStaffIds.has(String(s.id));
 
           tr.innerHTML = `
             <td style="padding:9px 12px; text-align:center; vertical-align:middle;">
-              <input type="checkbox" class="staff-row-checkbox" value="${s.id}" onchange="toggleStaffRowCheck(${s.id}, this.checked)" ${isRowChecked ? 'checked' : ''} style="width:15px; height:15px; cursor:pointer; accent-color:#0284c7;" />
+              <input type="checkbox" class="staff-row-checkbox" value="${s.id}" onchange="toggleStaffRowCheck('${s.id}', this.checked)" ${isRowChecked ? 'checked' : ''} style="width:15px; height:15px; cursor:pointer; accent-color:#0284c7;" />
             </td>
             <td style="padding:9px 12px; font-weight:700; color:#0284c7; font-size:0.8rem; vertical-align:middle;">#${String(s.id).padStart(3, '0')}</td>
             <td style="padding:9px 12px; vertical-align:middle;">
@@ -11051,8 +11051,8 @@ async function fetchMultiLiveDetections() {
             <td style="padding:9px 12px; vertical-align:middle;"><strong style="color:#16a34a; font-size:0.82rem; font-weight:700;">${salaryStr}</strong></td>
             <td style="padding:9px 12px; text-align:right; vertical-align:middle;">
               <div style="display:inline-flex; gap:5px;">
-                <button onclick="openTabEditStaffModal(${s.id})" style="background:#f0f9ff; color:#0284c7; border:1px solid #bae6fd; padding:4px 9px; border-radius:5px; font-size:0.75rem; font-weight:600; cursor:pointer; transition:all 0.15s ease;" onmouseover="this.style.background='#e0f2fe'" onmouseout="this.style.background='#f0f9ff'"><i class="fa-solid fa-pen" style="margin-right:3px;"></i>Edit</button>
-                <button onclick="deleteTabStaffMember(${s.id}, '${nameStr.replace(/'/g, "\\'")}')" style="background:#fef2f2; color:#dc2626; border:1px solid #fecaca; padding:4px 9px; border-radius:5px; font-size:0.75rem; font-weight:600; cursor:pointer; transition:all 0.15s ease;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fef2f2'"><i class="fa-solid fa-trash" style="margin-right:3px;"></i>Delete</button>
+                <button onclick="openTabEditStaffModal('${s.id}')" style="background:#f0f9ff; color:#0284c7; border:1px solid #bae6fd; padding:4px 9px; border-radius:5px; font-size:0.75rem; font-weight:600; cursor:pointer; transition:all 0.15s ease;" onmouseover="this.style.background='#e0f2fe'" onmouseout="this.style.background='#f0f9ff'"><i class="fa-solid fa-pen" style="margin-right:3px;"></i>Edit</button>
+                <button onclick="deleteTabStaffMember('${s.id}', '${nameStr.replace(/'/g, "\\'")}')" style="background:#fef2f2; color:#dc2626; border:1px solid #fecaca; padding:4px 9px; border-radius:5px; font-size:0.75rem; font-weight:600; cursor:pointer; transition:all 0.15s ease;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fef2f2'"><i class="fa-solid fa-trash" style="margin-right:3px;"></i>Delete</button>
               </div>
             </td>
           `;
@@ -11105,7 +11105,7 @@ async function fetchMultiLiveDetections() {
       }
 
       function openTabEditStaffModal(userId) {
-        const user = tabAllStaff.find(s => s.id === userId);
+        const user = tabAllStaff.find(s => String(s.id) === String(userId));
         if (!user) return;
 
         populateCameraAssignmentDropdowns();
@@ -11342,21 +11342,21 @@ async function fetchMultiLiveDetections() {
           tr.onmouseleave = () => tr.style.background = "transparent";
 
           const initial = user.name ? user.name.charAt(0).toUpperCase() : "?";
-          const isChecked = selectedShiftStaffIds.has(user.id);
-          const shiftId = user.shift_id || 1;
-          const assignedShift = allShiftsCache.find(s => s.id === shiftId) || { name: user.shift_name || "Morning Shift", start_time: "09:00", end_time: "17:00", grace_period_minutes: 15 };
+          const isChecked = selectedShiftStaffIds.has(String(user.id));
+          const shiftId = user.shift_id || 'shift-morning-default';
+          const assignedShift = allShiftsCache.find(s => String(s.id) === String(shiftId)) || { name: user.shift_name || "Morning Shift", start_time: "09:00", end_time: "17:00", grace_period_minutes: 15 };
           const start12 = formatMainTime(assignedShift.start_time);
           const end12 = formatMainTime(assignedShift.end_time);
           const safeName = (user.name || "").replace(/'/g, "\\'").replace(/"/g, "&quot;");
 
           let shiftOptions = allShiftsCache.map(s => {
-            const isSel = s.id === shiftId ? "selected" : "";
+            const isSel = String(s.id) === String(shiftId) ? "selected" : "";
             return `<option value="${s.id}" ${isSel}>${s.name} (${formatMainTime(s.start_time)} - ${formatMainTime(s.end_time)})</option>`;
           }).join("");
 
           tr.innerHTML = `
             <td style="padding:10px 14px; text-align:center;">
-              <input type="checkbox" class="shift-staff-checkbox" value="${user.id}" ${isChecked ? "checked" : ""} onchange="toggleShiftStaffRowCheck(${user.id}, this.checked)" style="width:16px; height:16px; cursor:pointer; accent-color:#3d9fd4;" />
+              <input type="checkbox" class="shift-staff-checkbox" value="${user.id}" ${isChecked ? "checked" : ""} onchange="toggleShiftStaffRowCheck('${user.id}', this.checked)" style="width:16px; height:16px; cursor:pointer; accent-color:#3d9fd4;" />
             </td>
             <td style="padding:10px 14px; font-weight:700; color:#94a3b8; font-size:0.78em;">#${user.id}</td>
             <td style="padding:10px 14px;">
@@ -11379,7 +11379,7 @@ async function fetchMultiLiveDetections() {
               </div>
             </td>
             <td style="padding:10px 14px; text-align:right;">
-              <select class="form-select enterprise-select" onchange="assignStaffShift(${user.id}, this.value, '${safeName}', this)" style="display:inline-block; width:100%; max-width:270px; background:#ffffff; border:1.5px solid #cfe8f7; border-radius:8px; padding:5px 10px; font-size:0.82rem; font-weight:600; color:#1e293b; cursor:pointer;">
+              <select class="form-select enterprise-select" onchange="assignStaffShift('${user.id}', this.value, '${safeName}', this)" style="display:inline-block; width:100%; max-width:270px; background:#ffffff; border:1.5px solid #cfe8f7; border-radius:8px; padding:5px 10px; font-size:0.82rem; font-weight:600; color:#1e293b; cursor:pointer;">
                 ${shiftOptions}
               </select>
             </td>
@@ -11430,7 +11430,7 @@ async function fetchMultiLiveDetections() {
         checkboxes.forEach(cb => {
           cb.checked = checked;
           if (checked) {
-            selectedShiftStaffIds.add(parseInt(cb.value));
+            selectedShiftStaffIds.add(cb.value);
           }
         });
         updateBulkShiftButtonBadge();
@@ -11469,7 +11469,7 @@ async function fetchMultiLiveDetections() {
           const resp = await fetch(`${API_BASE}/users/${userId}/assign-shift`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ shift_id: parseInt(shiftId), effective_from: getShiftEffectiveFrom() })
+            body: JSON.stringify({ shift_id: String(shiftId), effective_from: getShiftEffectiveFrom() })
           });
           const data = await resp.json();
           if (resp.ok && data.success) {
@@ -11518,7 +11518,7 @@ async function fetchMultiLiveDetections() {
           const resp = await fetch(`${API_BASE}/users/bulk-assign-shifts`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_ids: userIds, shift_id: parseInt(targetShiftId), effective_from: getShiftEffectiveFrom() })
+            body: JSON.stringify({ user_ids: userIds, shift_id: String(targetShiftId), effective_from: getShiftEffectiveFrom() })
           });
           const data = await resp.json();
           if (resp.ok && data.success) {

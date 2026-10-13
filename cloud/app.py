@@ -21,6 +21,7 @@ from cloud.config import CLOUD_API_PREFIX, CLOUD_DB_PATH, ADMIN_CONFIG_PASSWORD,
 from cloud.db import (
     init_cloud_db,
     get_staff_list,
+    get_staff_by_id,
     query_attendance_reports,
     get_shifts,
     get_branches,
@@ -37,6 +38,24 @@ from cloud.routes_sync import sync_bp
 
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s] [CLOUD] [%(levelname)s] %(message)s')
 logger = logging.getLogger("cloud.app")
+
+
+def _assign_staff_shift(staff_id: str, shift_id: str) -> bool:
+    staff = get_staff_by_id(str(staff_id))
+    if not staff:
+        return False
+    return update_staff_profile(
+        staff_id=str(staff_id),
+        name=staff.get('name') or '',
+        email=staff.get('email'),
+        phone=staff.get('phone'),
+        cnic=staff.get('cnic'),
+        department=staff.get('department'),
+        position=staff.get('position'),
+        shift_id=str(shift_id),
+        notes=staff.get('notes'),
+        active=int(staff.get('active', 1))
+    )
 
 
 def create_cloud_app(init_db_on_start: bool = True) -> Flask:
@@ -203,7 +222,10 @@ def create_cloud_app(init_db_on_start: bool = True) -> Flask:
     def api_user_assign_shift_shim(user_id):
         data = request.get_json(silent=True) or {}
         shift_id = data.get("shift_id")
-        update_staff_profile(staff_id=str(user_id), shift_id=shift_id)
+        if not shift_id:
+            return jsonify({"success": False, "error": "shift_id is required"}), 400
+        if not _assign_staff_shift(str(user_id), str(shift_id)):
+            return jsonify({"success": False, "error": "Staff member or shift assignment not found"}), 404
         return jsonify({"success": True, "message": "Shift assigned successfully"}), 200
 
     @app.route("/api/users/bulk-assign-shifts", methods=['POST'])
@@ -211,9 +233,20 @@ def create_cloud_app(init_db_on_start: bool = True) -> Flask:
         data = request.get_json(silent=True) or {}
         user_ids = data.get("user_ids", [])
         shift_id = data.get("shift_id")
-        for uid in user_ids:
-            update_staff_profile(staff_id=str(uid), shift_id=shift_id)
-        return jsonify({"success": True, "message": "Shifts assigned to selected staff"}), 200
+        if not shift_id:
+            return jsonify({"success": False, "error": "shift_id is required"}), 400
+        if user_ids == 'all':
+            user_ids = [staff['id'] for staff in get_staff_list(branch_id='branch-main', active_only=True)]
+        if not isinstance(user_ids, list):
+            return jsonify({"success": False, "error": "user_ids must be a list or 'all'"}), 400
+        failed_ids = [str(uid) for uid in user_ids if not _assign_staff_shift(str(uid), str(shift_id))]
+        if failed_ids:
+            return jsonify({
+                "success": False,
+                "error": "Some staff members could not be assigned",
+                "failed_user_ids": failed_ids
+            }), 404
+        return jsonify({"success": True, "updated": len(user_ids), "message": "Shifts assigned to selected staff"}), 200
 
     @app.route("/api/shifts/<shift_id>/set-default", methods=['POST'])
     def api_shift_set_default_shim(shift_id):
