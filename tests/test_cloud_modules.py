@@ -519,6 +519,11 @@ class TestCloudPhase1Integration(unittest.TestCase):
             json={'date': today, 'check_in_time': '09:10', 'check_out_time': '17:00', 'notes': 'Corrected'}
         )
         self.assertEqual(present_response.status_code, 200, present_response.get_json())
+        repeated_response = self.client.post(
+            '/api/users/95/mark-present',
+            json={'date': today, 'check_in_time': '09:10', 'check_out_time': '17:00', 'notes': 'Corrected'}
+        )
+        self.assertEqual(repeated_response.status_code, 200, repeated_response.get_json())
         report_response = self.client.get(
             '/api/v1/reports/?date=today',
             headers=self.admin_headers
@@ -527,6 +532,51 @@ class TestCloudPhase1Integration(unittest.TestCase):
         self.assertEqual(len(records), 2)
         self.assertTrue(any(record['first_seen'] == f'{today} 09:10:00' for record in records))
         self.assertTrue(any(record['last_seen'] == f'{today} 17:00:00' for record in records))
+
+        open_shift_response = self.client.post(
+            '/api/users/95/mark-present',
+            json={'date': today, 'check_in_time': '09:10'}
+        )
+        self.assertEqual(open_shift_response.status_code, 200, open_shift_response.get_json())
+        report_response = self.client.get(
+            '/api/v1/reports/?date=today',
+            headers=self.admin_headers
+        )
+        records = [record for record in report_response.get_json()['records'] if record['user_id'] == 95]
+        self.assertEqual(len(records), 1)
+        self.assertEqual(records[0]['event_type'], 'checkin')
+
+    def test_09b_manual_correction_reuses_unlinked_event_without_adding_another(self):
+        employee = next(staff for staff in get_staff_list(branch_id='branch-main', active_only=True) if staff['local_user_id'] == 95)
+        target_date = '2099-08-17'
+        with get_db_connection(TEST_CLOUD_DB) as conn:
+            conn.execute('''
+                INSERT INTO cloud_attendance_events (
+                    id, org_id, branch_id, installation_id, local_attendance_id,
+                    staff_id, employee_name, timestamp, event_type, status, source
+                ) VALUES (?, 'org-default', 'branch-main', ?, ?, NULL, ?, ?, 'checkin', 'present', 'camera')
+            ''', (
+                'att-unlinked-manual-correction-test', 'legacy-unlinked-test', 87650001,
+                employee['name'], f'{target_date} 08:45:00'
+            ))
+
+        result = set_staff_attendance_status(
+            user_id='95', target_date=target_date, status='present',
+            check_in_time='09:10', notes='Corrected existing event', db_path=TEST_CLOUD_DB
+        )
+
+        with get_db_connection(TEST_CLOUD_DB) as conn:
+            rows = conn.execute(
+                'SELECT staff_id, timestamp, source, marked_by FROM cloud_attendance_events WHERE DATE(timestamp) = ? AND employee_name = ?',
+                (target_date, employee['name'])
+            ).fetchall()
+
+        self.assertIsNotNone(result)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]['staff_id'], employee['id'])
+        self.assertEqual(rows[0]['timestamp'], f'{target_date} 09:10:00')
+        self.assertEqual(rows[0]['source'], 'manual')
+        self.assertEqual(rows[0]['marked_by'], 'Admin')
 
     def test_10_concurrent_batch_ingestion(self):
         """Verify concurrent sync requests handle transactions without data loss or SQLite deadlocks."""

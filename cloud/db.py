@@ -29,6 +29,17 @@ def _publish_shift_change(branch_id: str, db_path: Optional[Path] = None) -> Non
         publish_shift_snapshot(branch_id, db_path=db_path)
     except Exception as error:
         logger.warning("Could not push updated shifts for branch %s: %s", branch_id, error)
+    try:
+        import threading
+        from cloud.mobile_api import notify_shift_schedule_changed
+        threading.Thread(
+            target=notify_shift_schedule_changed,
+            args=(branch_id, db_path),
+            name="MobileShiftNotification",
+            daemon=True,
+        ).start()
+    except Exception as error:
+        logger.warning("Could not notify mobile clients about shift change for branch %s: %s", branch_id, error)
 
 SELECTED_DEPLOYMENT_EMPLOYEES = [
     {"local_user_id": 95, "name": "Sikander FnK", "department": "FnK Operations", "position": "Floor Supervisor"},
@@ -254,6 +265,39 @@ def init_cloud_db(db_path: Optional[Path] = None):
         ''')
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_att_lookup ON cloud_attendance_events(org_id, branch_id, timestamp);')
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_att_staff ON cloud_attendance_events(staff_id, timestamp);')
+
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS mobile_accounts (
+                id TEXT PRIMARY KEY,
+                username TEXT NOT NULL COLLATE NOCASE UNIQUE,
+                password_hash TEXT NOT NULL,
+                role TEXT NOT NULL CHECK (role IN ('employee', 'admin')),
+                staff_id TEXT,
+                branch_id TEXT NOT NULL DEFAULT 'branch-main',
+                active INTEGER NOT NULL DEFAULT 1,
+                display_name TEXT,
+                department TEXT,
+                position TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (staff_id) REFERENCES cloud_staff(id) ON DELETE CASCADE
+            )
+        ''')
+        mobile_account_columns = {
+            row[1] for row in cursor.execute('PRAGMA table_info(mobile_accounts)').fetchall()
+        }
+        for column in ('display_name', 'department', 'position'):
+            if column not in mobile_account_columns:
+                cursor.execute(f'ALTER TABLE mobile_accounts ADD COLUMN {column} TEXT')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS mobile_device_tokens (
+                token TEXT PRIMARY KEY,
+                account_id TEXT NOT NULL,
+                platform TEXT NOT NULL DEFAULT '',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (account_id) REFERENCES mobile_accounts(id) ON DELETE CASCADE
+            )
+        ''')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_mobile_tokens_account ON mobile_device_tokens(account_id);')
         
         # Seed default organization & branch if database is fresh
         cursor.execute('SELECT COUNT(*) FROM cloud_organizations')
@@ -687,16 +731,21 @@ def set_staff_attendance_status(
 
         staff = dict(staff)
         existing = conn.execute(
-            'SELECT id, event_type FROM cloud_attendance_events WHERE staff_id = ? AND DATE(timestamp) = ?',
-            (staff['id'], target.isoformat())
+            '''SELECT id, event_type FROM cloud_attendance_events
+               WHERE branch_id = ? AND DATE(timestamp) = ?
+                 AND (staff_id = ? OR (staff_id IS NULL AND LOWER(employee_name) = LOWER(?)))''',
+            (staff['branch_id'], target.isoformat(), staff['id'], staff['name'])
         ).fetchall()
         if existing:
+            existing_ids = [row['id'] for row in existing]
+            placeholders = ', '.join('?' for _ in existing_ids)
             conn.execute(
-                '''UPDATE cloud_attendance_events
+                f'''UPDATE cloud_attendance_events
                    SET status = ?, marked_by = 'Admin', source = 'manual',
+                       staff_id = COALESCE(staff_id, ?), employee_name = ?,
                        notes = CASE WHEN ? != '' THEN ? ELSE notes END
-                   WHERE staff_id = ? AND DATE(timestamp) = ?''',
-                (normalized_status, notes, notes, staff['id'], target.isoformat())
+                   WHERE id IN ({placeholders})''',
+                (normalized_status, staff['id'], staff['name'], notes, notes, *existing_ids)
             )
             if check_in_timestamp:
                 checkin_row = next((row for row in existing if str(row['event_type']).lower() in {'checkin', 'check-in'}), None)
@@ -726,6 +775,14 @@ def set_staff_attendance_status(
                          f"cloud-admin:{staff['id']}", date_key * 2 + 1, staff['id'],
                          staff['name'], check_out_timestamp, normalized_status, notes)
                     )
+            elif normalized_status == 'present':
+                conn.execute(
+                    f'''DELETE FROM cloud_attendance_events
+                        WHERE id IN ({placeholders})
+                          AND LOWER(event_type) IN ('checkout', 'check-out')
+                          AND source = 'manual' AND marked_by = 'Admin' ''',
+                    existing_ids
+                )
             conn.commit()
             return {'staff_id': staff['id'], 'user_id': staff['local_user_id'], 'date': target.isoformat(), 'status': normalized_status}
 
@@ -799,6 +856,7 @@ def ingest_attendance_batch(
         return results
         
     conn = get_db_connection(db_path)
+    camera_notifications = []
     try:
         cursor = conn.cursor()
         # Explicit transaction start
@@ -867,6 +925,26 @@ def ingest_attendance_batch(
             cursor.execute(staff_query, staff_params)
             staff_row = cursor.fetchone()
             staff_id = staff_row['id'] if staff_row else None
+
+            event_type = item.get('event_type') or ('checkout' if 'checkout' in str(item.get('source', '')).lower() else 'checkin')
+            status = item.get('status') or 'present'
+            if (
+                staff_id
+                and str(event_type).strip().lower() in {'checkin', 'check-in'}
+                and str(status).strip().lower() in {'present', 'late', 'checked_out'}
+            ):
+                cursor.execute('''
+                    SELECT local_attendance_id FROM cloud_attendance_events
+                    WHERE staff_id = ? AND DATE(timestamp) = DATE(?)
+                      AND LOWER(event_type) IN ('checkin', 'check-in')
+                      AND LOWER(status) IN ('present', 'late', 'checked_out')
+                      AND LOWER(source) = 'mobile'
+                    LIMIT 1
+                ''', (staff_id, ts))
+                if cursor.fetchone():
+                    results['duplicates'] += 1
+                    results['duplicate_local_ids'].append(local_id_int)
+                    continue
             
             if not staff_id and item.get('auto_link_staff', True):
                 # Auto register staff in directory if new
@@ -877,8 +955,6 @@ def ingest_attendance_batch(
                 ''', (staff_id, org_id, branch_id, user_id_int, emp_name, item.get('department') or 'General'))
                 
             event_uuid = f"att-{uuid.uuid4().hex[:12]}"
-            event_type = item.get('event_type') or ('checkout' if 'checkout' in str(item.get('source', '')).lower() else 'checkin')
-            status = item.get('status') or 'present'
             if (
                 staff_id
                 and str(event_type).strip().lower() in {'checkin', 'check-in'}
@@ -917,6 +993,13 @@ def ingest_attendance_batch(
             ))
             results["accepted"] += 1
             results["accepted_local_ids"].append(local_id_int)
+            if staff_id and str(event_type).strip().lower() in {'checkin', 'check-in'}:
+                camera_notifications.append({
+                    'staff_id': staff_id,
+                    'source': source or 'camera',
+                    'timestamp': str(ts),
+                    'camera_id': camera_id,
+                })
             
         conn.commit()
     except Exception as e:
@@ -925,6 +1008,11 @@ def ingest_attendance_batch(
         raise e
     finally:
         conn.close()
+
+    if camera_notifications:
+        from cloud.mobile_api import notify_attendance_event
+        for notification in camera_notifications:
+            notify_attendance_event(**notification, db_path=db_path)
         
     return results
 

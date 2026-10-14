@@ -9628,6 +9628,7 @@ async function fetchMultiLiveDetections() {
           const report = await res.json();
           if (!res.ok) throw new Error(report.error || `Attendance report request failed (${res.status}).`);
           if (!report || !Array.isArray(report.records)) throw new Error('Attendance report returned an invalid response.');
+          report.records = combineAttendanceEventsByDay(report.records);
           mainReportData = report;
           renderMainReportUI(mainReportData);
         } catch (err) {
@@ -9639,6 +9640,49 @@ async function fetchMultiLiveDetections() {
             refreshButton.innerHTML = originalButtonHTML;
           }
         }
+      }
+
+      function combineAttendanceEventsByDay(records) {
+        const grouped = new Map();
+        for (const record of records) {
+          const date = record.date || String(record.timestamp || record.first_seen || record.last_seen || '').slice(0, 10);
+          const employeeId = record.user_id || record.staff_id || record.employee_name || record.name;
+          const key = `${employeeId}|${date}`;
+          let daily = grouped.get(key);
+          if (!daily) {
+            daily = { ...record, date, first_seen: null, last_seen: null, _hasCheckin: false, _hasCheckout: false, _isLate: false };
+            grouped.set(key, daily);
+          }
+
+          const eventType = String(record.event_type || '').toLowerCase().replace(/[-_]/g, '');
+          const status = String(record.status || '').toLowerCase();
+          const hasCheckin = eventType === 'checkin' && status !== 'absent';
+          const hasCheckout = eventType === 'checkout';
+          const checkinTime = record.first_seen || (hasCheckin ? record.timestamp : null);
+          const checkoutTime = record.last_seen || (hasCheckout ? record.timestamp : null);
+
+          if (checkinTime && (!daily.first_seen || checkinTime < daily.first_seen)) daily.first_seen = checkinTime;
+          if (checkoutTime && (!daily.last_seen || checkoutTime > daily.last_seen)) daily.last_seen = checkoutTime;
+          daily._hasCheckin ||= Boolean(checkinTime);
+          daily._hasCheckout ||= Boolean(checkoutTime);
+          daily._isLate ||= status === 'late';
+
+          if (hasCheckin) {
+            daily.checkin_camera = record.checkin_camera || record.camera_id || daily.checkin_camera;
+            daily.checkin_location = record.checkin_location || record.location || daily.checkin_location;
+          }
+          if (record.source === 'manual' || !daily.source) daily.source = record.source;
+          if (record.marked_by) daily.marked_by = record.marked_by;
+          if (record.notes) daily.notes = record.notes;
+        }
+
+        return Array.from(grouped.values(), daily => {
+          daily.status = daily._hasCheckout ? 'checked_out' : daily._isLate ? 'late' : daily._hasCheckin ? 'present' : 'absent';
+          delete daily._hasCheckin;
+          delete daily._hasCheckout;
+          delete daily._isLate;
+          return daily;
+        });
       }
 
       function formatMainTime(isoString) {
@@ -10078,9 +10122,7 @@ async function fetchMultiLiveDetections() {
         const opt = select.options[select.selectedIndex];
         if (opt) {
           const start = opt.getAttribute('data-start');
-          const end = opt.getAttribute('data-end');
           if (start) document.getElementById('manualAttCheckIn').value = start.slice(0, 5);
-          if (end) document.getElementById('manualAttCheckOut').value = end.slice(0, 5);
         }
       }
 
@@ -10114,7 +10156,7 @@ async function fetchMultiLiveDetections() {
         const select = document.getElementById('manualAttShiftSelect');
         const opt = select?.options[select.selectedIndex];
         document.getElementById('manualAttCheckIn').value = opt?.getAttribute('data-start')?.slice(0, 5) || '09:00';
-        document.getElementById('manualAttCheckOut').value = opt?.getAttribute('data-end')?.slice(0, 5) || '';
+        document.getElementById('manualAttCheckOut').value = '';
 
         new bootstrap.Modal(document.getElementById('manualAttendanceModal')).show();
       }
@@ -10137,7 +10179,7 @@ async function fetchMultiLiveDetections() {
         const opt = select?.options[select.selectedIndex];
         
         document.getElementById('manualAttCheckIn').value = inHHMM || opt?.getAttribute('data-start')?.slice(0, 5) || '09:00';
-        document.getElementById('manualAttCheckOut').value = outHHMM || opt?.getAttribute('data-end')?.slice(0, 5) || '';
+        document.getElementById('manualAttCheckOut').value = outHHMM || '';
 
         new bootstrap.Modal(document.getElementById('manualAttendanceModal')).show();
       }

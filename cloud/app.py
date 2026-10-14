@@ -38,6 +38,7 @@ from cloud.routes_shifts import shifts_bp
 from cloud.routes_staff import staff_bp
 from cloud.routes_reports import reports_bp, api_get_attendance_reports
 from cloud.routes_sync import sync_bp
+from cloud.mobile_api import load_mobile_shift_socket_account, mobile_bp
 from cloud.auth import validate_sync_credentials
 from cloud.shift_push import build_shift_snapshot, register_shift_client, unregister_shift_client
 
@@ -76,6 +77,7 @@ def create_cloud_app(init_db_on_start: bool = True) -> Flask:
     app.register_blueprint(staff_bp, url_prefix=f"{CLOUD_API_PREFIX}/staff")
     app.register_blueprint(reports_bp, url_prefix=f"{CLOUD_API_PREFIX}/reports")
     app.register_blueprint(sync_bp, url_prefix=f"{CLOUD_API_PREFIX}/sync")
+    app.register_blueprint(mobile_bp, url_prefix=f"{CLOUD_API_PREFIX}/mobile")
 
     sock = Sock(app)
 
@@ -95,6 +97,25 @@ def create_cloud_app(init_db_on_start: bool = True) -> Flask:
                 pass
         except Exception as error:
             logger.info("Shift push connection closed for branch %s: %s", branch_id, error)
+        finally:
+            unregister_shift_client(branch_id, ws)
+
+    @sock.route(f"{CLOUD_API_PREFIX}/mobile/shift-events")
+    def api_mobile_shift_events(ws):
+        account = load_mobile_shift_socket_account(request.args.get("ticket", ""))
+        if not account:
+            ws.send(json.dumps({"type": "error", "success": False, "error": "Mobile shift ticket is invalid or expired."}))
+            ws.close()
+            return
+
+        branch_id = account["branch_id"]
+        register_shift_client(branch_id, ws)
+        try:
+            ws.send(json.dumps(build_shift_snapshot(branch_id)))
+            while ws.receive() is not None:
+                pass
+        except Exception as error:
+            logger.info("Mobile shift push connection closed for branch %s: %s", branch_id, error)
         finally:
             unregister_shift_client(branch_id, ws)
     
