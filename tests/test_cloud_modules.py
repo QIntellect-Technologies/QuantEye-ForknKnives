@@ -348,6 +348,81 @@ class TestCloudPhase1Integration(unittest.TestCase):
         self.assertEqual(day_events[0]['status'], 'present')
         self.assertEqual(day_events[0]['source'], '')
 
+    def test_05e_recheckin_replaces_prior_day_events_after_absence(self):
+        employee = get_staff_list(branch_id='branch-main', active_only=True)[0]
+        user_id = employee['local_user_id']
+        staff_id = employee['id']
+
+        for day_offset, mark_absent_in_cloud in ((3, True), (4, False)):
+            with self.subTest(mark_absent_in_cloud=mark_absent_in_cloud):
+                target_date = (
+                    datetime.now(timezone.utc).date() + timedelta(days=day_offset)
+                ).isoformat()
+                installation_id = f"inst-recheckin-{day_offset}"
+                initial = ingest_attendance_batch(
+                    org_id='org-default',
+                    branch_id='branch-main',
+                    installation_id=installation_id,
+                    events=[
+                        {
+                            'local_attendance_id': 87654330 + day_offset * 10,
+                            'user_id': user_id,
+                            'employee_name': employee['name'],
+                            'timestamp': f'{target_date} 09:00:00',
+                            'event_type': 'checkin',
+                            'status': 'present',
+                            'source': 'camera',
+                        },
+                        {
+                            'local_attendance_id': 87654331 + day_offset * 10,
+                            'user_id': user_id,
+                            'employee_name': employee['name'],
+                            'timestamp': f'{target_date} 12:00:00',
+                            'event_type': 'checkout',
+                            'status': 'checked_out',
+                            'source': 'camera',
+                        },
+                    ],
+                    db_path=TEST_CLOUD_DB,
+                )
+                self.assertEqual(initial['accepted'], 2)
+
+                if mark_absent_in_cloud:
+                    result = set_staff_attendance_status(
+                        user_id=str(user_id), target_date=target_date, status='absent'
+                    )
+                    self.assertIsNotNone(result)
+
+                recheckin = ingest_attendance_batch(
+                    org_id='org-default',
+                    branch_id='branch-main',
+                    installation_id=installation_id,
+                    events=[{
+                        'local_attendance_id': 87654332 + day_offset * 10,
+                        'user_id': user_id,
+                        'employee_name': employee['name'],
+                        'timestamp': f'{target_date} 13:30:00',
+                        'event_type': 'checkin',
+                        'status': 'present',
+                        'source': 'camera',
+                    }],
+                    db_path=TEST_CLOUD_DB,
+                )
+
+                with get_db_connection(TEST_CLOUD_DB) as conn:
+                    day_events = conn.execute(
+                        'SELECT event_type, status, source, timestamp FROM cloud_attendance_events '
+                        'WHERE staff_id = ? AND DATE(timestamp) = ?',
+                        (staff_id, target_date),
+                    ).fetchall()
+
+                self.assertEqual(recheckin['accepted'], 1)
+                self.assertEqual(len(day_events), 1)
+                self.assertEqual(day_events[0]['event_type'], 'checkin')
+                self.assertEqual(day_events[0]['status'], 'present')
+                self.assertEqual(day_events[0]['source'], 'camera')
+                self.assertEqual(day_events[0]['timestamp'], f'{target_date} 13:30:00')
+
     def test_06_attendance_batch_ingestion_and_duplicate_prevention(self):
         """
         Test transactional batch attendance syncing with strict duplicate prevention

@@ -960,18 +960,10 @@ def ingest_attendance_batch(
                 and str(event_type).strip().lower() in {'checkin', 'check-in'}
                 and str(status).strip().lower() in {'present', 'late', 'checked_out'}
             ):
-                admin_installation_id = f"cloud-admin:{staff_id}"
                 cursor.execute('''
                     DELETE FROM cloud_attendance_events
-                    WHERE staff_id = ? AND installation_id = ?
-                      AND DATE(timestamp) = DATE(?) AND LOWER(status) = 'absent'
-                ''', (staff_id, admin_installation_id, ts))
-                cursor.execute('''
-                    UPDATE cloud_attendance_events
-                    SET status = ?
                     WHERE staff_id = ? AND DATE(timestamp) = DATE(?)
-                      AND LOWER(status) = 'absent'
-                ''', (str(status).strip().lower(), staff_id, ts))
+                ''', (staff_id, ts))
             confidence = float(item.get('confidence', 1.0) or 1.0)
             camera_id = str(item.get('camera_id') or item.get('checkout_camera_id') or item.get('device_id') or '')
             location = str(item.get('location') or item.get('checkout_location') or '')
