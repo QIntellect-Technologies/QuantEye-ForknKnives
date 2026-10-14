@@ -34,6 +34,7 @@ from cloud.db import (
 )
 from cloud.license import generate_license_key, verify_license_key
 from cloud.app import create_cloud_app
+from cloud.shift_push import register_shift_client, unregister_shift_client
 
 
 class TestCloudPhase1Integration(unittest.TestCase):
@@ -261,6 +262,53 @@ class TestCloudPhase1Integration(unittest.TestCase):
             if shift['id'] == assigned_shift_id
         )
         self.assertEqual(shift_summary['user_count'], 1)
+
+    def test_05d_shift_mutations_push_snapshot_to_connected_client(self):
+        employee = get_staff_list(branch_id='branch-main', active_only=True)[0]
+        original_shift_id = employee.get('shift_id')
+
+        class FakeClient:
+            def __init__(self):
+                self.messages = []
+            def send(self, message):
+                self.messages.append(json.loads(message))
+
+        client = FakeClient()
+        shift_id = None
+        register_shift_client('branch-main', client)
+        try:
+            shift_id = create_shift(
+                org_id='org-default',
+                branch_id='branch-main',
+                name='Connected Push Test Shift',
+                start_time='18:40',
+                end_time='22:00'
+            )
+            create_or_sync_staff(
+                org_id='org-default',
+                branch_id='branch-main',
+                name=employee['name'],
+                local_user_id=employee['local_user_id'],
+                shift_id=shift_id
+            )
+            pushed_assignment = next(
+                assignment for assignment in client.messages[-1]['staff_assignments']
+                if assignment['local_user_id'] == employee['local_user_id']
+            )
+            self.assertEqual(pushed_assignment['shift_id'], shift_id)
+            self.assertEqual(client.messages[-1]['type'], 'shift_snapshot')
+        finally:
+            if shift_id:
+                create_or_sync_staff(
+                    org_id='org-default',
+                    branch_id='branch-main',
+                    name=employee['name'],
+                    local_user_id=employee['local_user_id'],
+                    shift_id=original_shift_id
+                )
+                from cloud.db import delete_shift
+                delete_shift(shift_id)
+            unregister_shift_client('branch-main', client)
 
     def test_05c_new_checkin_clears_cloud_manual_absence_for_the_day(self):
         employee = get_staff_list(branch_id='branch-main', active_only=True)[0]

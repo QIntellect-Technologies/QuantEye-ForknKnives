@@ -8,9 +8,11 @@ import sys
 import secrets
 import logging
 import os
+import json
 from pathlib import Path
 from flask import Flask, jsonify, request, session, render_template, make_response
 from flask_cors import CORS
+from flask_sock import Sock
 
 # Ensure root directory is in sys.path when running directly inside the cloud directory
 _ROOT_DIR = Path(__file__).resolve().parent.parent
@@ -36,6 +38,8 @@ from cloud.routes_shifts import shifts_bp
 from cloud.routes_staff import staff_bp
 from cloud.routes_reports import reports_bp, api_get_attendance_reports
 from cloud.routes_sync import sync_bp
+from cloud.auth import validate_sync_credentials
+from cloud.shift_push import build_shift_snapshot, register_shift_client, unregister_shift_client
 
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s] [CLOUD] [%(levelname)s] %(message)s')
 logger = logging.getLogger("cloud.app")
@@ -72,6 +76,27 @@ def create_cloud_app(init_db_on_start: bool = True) -> Flask:
     app.register_blueprint(staff_bp, url_prefix=f"{CLOUD_API_PREFIX}/staff")
     app.register_blueprint(reports_bp, url_prefix=f"{CLOUD_API_PREFIX}/reports")
     app.register_blueprint(sync_bp, url_prefix=f"{CLOUD_API_PREFIX}/sync")
+
+    sock = Sock(app)
+
+    @sock.route(f"{CLOUD_API_PREFIX}/sync/shift-events")
+    def api_sync_shift_events(ws):
+        is_valid, license_payload, error_message = validate_sync_credentials(request)
+        if not is_valid:
+            ws.send(json.dumps({'type': 'error', 'success': False, 'error': error_message}))
+            ws.close()
+            return
+
+        branch_id = license_payload.get('branch_id')
+        register_shift_client(branch_id, ws)
+        try:
+            ws.send(json.dumps(build_shift_snapshot(branch_id)))
+            while ws.receive() is not None:
+                pass
+        except Exception as error:
+            logger.info("Shift push connection closed for branch %s: %s", branch_id, error)
+        finally:
+            unregister_shift_client(branch_id, ws)
     
     # Backwards-compatible aliases for index.html frontend calls under /api/*
     app.register_blueprint(settings_bp, url_prefix="/api/settings", name="legacy_settings")

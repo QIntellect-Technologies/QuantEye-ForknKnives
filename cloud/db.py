@@ -22,6 +22,14 @@ if not logger.handlers:
     logger.addHandler(handler)
     logger.setLevel(logging.INFO)
 
+
+def _publish_shift_change(branch_id: str, db_path: Optional[Path] = None) -> None:
+    try:
+        from cloud.shift_push import publish_shift_snapshot
+        publish_shift_snapshot(branch_id, db_path=db_path)
+    except Exception as error:
+        logger.warning("Could not push updated shifts for branch %s: %s", branch_id, error)
+
 SELECTED_DEPLOYMENT_EMPLOYEES = [
     {"local_user_id": 95, "name": "Sikander FnK", "department": "FnK Operations", "position": "Floor Supervisor"},
     {"local_user_id": 96, "name": "Shahid Assistant Chef FnK", "department": "FnK Operations", "position": "Assistant Chef"},
@@ -430,6 +438,7 @@ def create_shift(
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
         ''', (shift_id, org_id, branch_id, name, start_time, end_time, grace_period_minutes, checkout_grace_period_minutes, wd_json, 1 if is_default else 0))
         conn.commit()
+    _publish_shift_change(branch_id, db_path)
     return shift_id
 
 
@@ -468,7 +477,10 @@ def update_shift(
         params.append(shift_id)
         cur = conn.execute(f"UPDATE cloud_shifts SET {', '.join(updates)} WHERE id = ?", params)
         conn.commit()
-        return cur.rowcount > 0
+        updated = cur.rowcount > 0
+    if updated:
+        _publish_shift_change(branch_id, db_path)
+    return updated
 
 
 def set_default_shift(shift_id: str, db_path: Optional[Path] = None) -> bool:
@@ -480,22 +492,29 @@ def set_default_shift(shift_id: str, db_path: Optional[Path] = None) -> bool:
         conn.execute("UPDATE cloud_shifts SET is_default = 0 WHERE branch_id = ?", (branch_id,))
         cur = conn.execute("UPDATE cloud_shifts SET is_default = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?", (shift_id,))
         conn.commit()
-        return cur.rowcount > 0
+        updated = cur.rowcount > 0
+    if updated:
+        _publish_shift_change(branch_id, db_path)
+    return updated
 
 
 def delete_shift(shift_id: str, db_path: Optional[Path] = None) -> bool:
     with get_db_connection(db_path) as conn:
-        row = conn.execute("SELECT is_default FROM cloud_shifts WHERE id = ?", (shift_id,)).fetchone()
+        row = conn.execute("SELECT is_default, branch_id FROM cloud_shifts WHERE id = ?", (shift_id,)).fetchone()
         if not row:
             return False
         if row['is_default'] == 1:
             raise ValueError("Cannot delete the default shift")
+        branch_id = row['branch_id']
         assigned = conn.execute("SELECT COUNT(*) FROM cloud_staff WHERE shift_id = ?", (shift_id,)).fetchone()[0]
         if assigned > 0:
             raise ValueError(f"Cannot delete shift: it is currently assigned to {assigned} staff member(s)")
         cur = conn.execute("DELETE FROM cloud_shifts WHERE id = ?", (shift_id,))
         conn.commit()
-        return cur.rowcount > 0
+        deleted = cur.rowcount > 0
+    if deleted:
+        _publish_shift_change(branch_id, db_path)
+    return deleted
 
 
 # -------------------------------------------------------------
@@ -577,6 +596,7 @@ def create_or_sync_staff(
                 WHERE id = ?
             ''', (name.strip(), local_user_id, email, phone, cnic, department, position, shift_id, notes, active, staff_id))
             conn.commit()
+            _publish_shift_change(branch_id, db_path)
             return staff_id
         else:
             staff_id = f"staff-{uuid.uuid4().hex[:12]}"
@@ -585,6 +605,7 @@ def create_or_sync_staff(
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (staff_id, org_id, branch_id, local_user_id, name.strip(), email, phone, cnic, department, position, shift_id, notes, active))
             conn.commit()
+            _publish_shift_change(branch_id, db_path)
             return staff_id
 
 
@@ -602,6 +623,7 @@ def update_staff_profile(
     db_path: Optional[Path] = None
 ) -> bool:
     with get_db_connection(db_path) as conn:
+        existing = conn.execute("SELECT branch_id FROM cloud_staff WHERE id = ?", (staff_id,)).fetchone()
         cur = conn.execute('''
             UPDATE cloud_staff
             SET name = ?, email = ?, phone = ?, cnic = ?, department = ?, position = ?,
@@ -609,14 +631,23 @@ def update_staff_profile(
             WHERE id = ?
         ''', (name.strip(), email, phone, cnic, department, position, shift_id, notes, active, staff_id))
         conn.commit()
-        return cur.rowcount > 0
+        updated = cur.rowcount > 0
+        branch_id = existing['branch_id'] if existing and updated else None
+    if branch_id:
+        _publish_shift_change(branch_id, db_path)
+    return updated
 
 
 def delete_staff(staff_id: str, db_path: Optional[Path] = None) -> bool:
     with get_db_connection(db_path) as conn:
+        existing = conn.execute("SELECT branch_id FROM cloud_staff WHERE id = ?", (staff_id,)).fetchone()
         cur = conn.execute("DELETE FROM cloud_staff WHERE id = ?", (staff_id,))
         conn.commit()
-        return cur.rowcount > 0
+        deleted = cur.rowcount > 0
+        branch_id = existing['branch_id'] if existing and deleted else None
+    if branch_id:
+        _publish_shift_change(branch_id, db_path)
+    return deleted
 
 
 def set_staff_attendance_status(
