@@ -257,6 +257,7 @@ def notify_attendance_event(staff_id: str, source: str, timestamp: str, camera_i
             "title": title,
             "body": body,
             "sound": "default",
+            "channelId": "attendance",
             "data": {"type": "attendance", "staff_id": staff_id, "source": source, "timestamp": timestamp},
         })
     _expo_push(messages)
@@ -276,6 +277,7 @@ def notify_shift_schedule_changed(branch_id: str, db_path=None) -> None:
         "title": "Shift schedule updated",
         "body": "Open FNK Attendance to load your latest shift times.",
         "sound": "default",
+        "channelId": "attendance",
         "data": {"type": "shift_schedule_updated", "branch_id": branch_id},
     } for row in tokens])
 

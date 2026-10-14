@@ -177,6 +177,7 @@ class TestMobileApi(unittest.TestCase):
             self.assertEqual(camera_recipients, {
                 "ExponentPushToken[employee-test]", "ExponentPushToken[admin-test]"
             })
+            self.assertTrue(all(message["channelId"] == "attendance" for message in send_push.call_args.args[0]))
 
             send_push.reset_mock()
             notify_attendance_event(staff_id, "mobile", "2026-10-14 09:16:00", db_path=TEST_MOBILE_DB)
@@ -204,6 +205,7 @@ class TestMobileApi(unittest.TestCase):
             "ExponentPushToken[employee-shift-test]", "ExponentPushToken[admin-shift-test]"
         }.issubset(recipients))
         self.assertTrue(all(message["data"]["type"] == "shift_schedule_updated" for message in messages))
+        self.assertTrue(all(message["channelId"] == "attendance" for message in messages))
 
     def test_employee_shift_socket_ticket_is_short_lived_and_role_scoped(self):
         response = self.client.post(
