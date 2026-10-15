@@ -335,7 +335,7 @@ def create_cloud_app(init_db_on_start: bool = True) -> Flask:
         ok = set_default_shift(str(shift_id))
         if not ok:
             return jsonify({"success": False, "error": "Shift not found"}), 404
-        return jsonify({"success": True, "message": "Default shift set successfully"}), 200
+        return jsonify({"success": True, "message": "Default shift set and assigned to all active staff"}), 200
 
     @app.route("/api/live-detections", methods=['GET'])
     def api_live_detections_shim():

@@ -566,12 +566,19 @@ def update_shift(
 
 def set_default_shift(shift_id: str, db_path: Optional[Path] = None) -> bool:
     with get_db_connection(db_path) as conn:
-        row = conn.execute("SELECT branch_id FROM cloud_shifts WHERE id = ?", (shift_id,)).fetchone()
-        if not row:
+        row = conn.execute(
+            "SELECT branch_id FROM cloud_shifts WHERE id = ? AND active = 1",
+            (shift_id,),
+        ).fetchone()
+        if row is None:
             return False
         branch_id = row['branch_id']
         conn.execute("UPDATE cloud_shifts SET is_default = 0 WHERE branch_id = ?", (branch_id,))
         cur = conn.execute("UPDATE cloud_shifts SET is_default = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?", (shift_id,))
+        conn.execute(
+            "UPDATE cloud_staff SET shift_id = ?, updated_at = CURRENT_TIMESTAMP WHERE branch_id = ? AND active = 1",
+            (shift_id, branch_id),
+        )
         conn.commit()
         updated = cur.rowcount > 0
     if updated:

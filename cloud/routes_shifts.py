@@ -114,7 +114,7 @@ def api_set_default_shift(shift_id):
         ok = set_default_shift(shift_id)
         if not ok:
             return jsonify({"success": False, "error": "Shift not found"}), 404
-        return jsonify({"success": True, "message": "Default shift set successfully"}), 200
+        return jsonify({"success": True, "message": "Default shift set and assigned to all active staff"}), 200
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 

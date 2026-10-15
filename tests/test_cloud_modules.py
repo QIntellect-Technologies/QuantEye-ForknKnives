@@ -186,6 +186,9 @@ class TestCloudPhase1Integration(unittest.TestCase):
         res_def = self.client.post(f'/api/shifts/{shift_id}/set-default')
         self.assertEqual(res_def.status_code, 200)
         self.assertTrue(res_def.get_json()['success'])
+        active_staff = get_staff_list(branch_id='branch-main', active_only=True)
+        self.assertTrue(active_staff)
+        self.assertTrue(all(staff['shift_id'] == shift_id for staff in active_staff))
 
         # Verify it is now default
         res_list2 = self.client.get('/api/v1/shifts/?branch_id=branch-main', headers=self.admin_headers)
