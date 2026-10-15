@@ -203,7 +203,7 @@ def create_cloud_app(init_db_on_start: bool = True) -> Flask:
                 "branch_name": b.get("branch_name", "Main Branch"),
                 "company_name": b.get("branch_name", "Main Branch"),
                 "city": b.get("city", "Lahore"),
-                "admin_name": "Mr. Junaid",
+                "admin_name": "Mr. Abid",
                 "phone": b.get("contact_phone", ""),
                 "email": b.get("contact_email", "")
             }), 200

@@ -2810,7 +2810,7 @@
           "
         >
           <i class="fa-solid fa-user-tie" style="color: #3d9fd4; font-size: 1.05em;"></i>
-          <span id="sidebarUserName">Mr. Junaid</span>
+          <span id="sidebarUserName">Mr. Abid</span>
         </div>
       </div>
     </div>
@@ -2837,7 +2837,7 @@
           <span class="header-separator">|</span>
           <div class="header-user-badge">
             <i class="fa-solid fa-user-tie"></i>
-            <span class="header-user-name" id="headerUserName">Mr. Junaid</span>
+            <span class="header-user-name" id="headerUserName">Mr. Abid</span>
           </div>
         </div>
       </header>
@@ -5281,7 +5281,7 @@ async function fetchMultiLiveDetections() {
             </div>
             <div class="col-md-6">
               <label class="form-label font-weight-bold" style="color: #475569; font-size: 0.85em;">Admin / User Display Name</label>
-              <input type="text" id="settingAdminName" class="form-control" placeholder="e.g. Mr. Junaid" style="border-radius: 8px;">
+              <input type="text" id="settingAdminName" class="form-control" placeholder="e.g. Mr. Abid" style="border-radius: 8px;">
             </div>
             <div class="col-md-6">
               <label class="form-label font-weight-bold" style="color: #475569; font-size: 0.85em;">Official Email</label>
@@ -13314,7 +13314,7 @@ async function fetchMultiLiveDetections() {
           if (data) {
             if (document.getElementById('settingOrganizationName')) document.getElementById('settingOrganizationName').value = data.branch_name || data.company_name || '';
             if (document.getElementById('settingCity')) document.getElementById('settingCity').value = data.city || '';
-            if (document.getElementById('settingAdminName')) document.getElementById('settingAdminName').value = data.admin_name || 'Mr. Junaid';
+            if (document.getElementById('settingAdminName')) document.getElementById('settingAdminName').value = data.admin_name || 'Mr. Abid';
             if (document.getElementById('settingPhone')) document.getElementById('settingPhone').value = data.phone || '';
             if (document.getElementById('settingEmail')) document.getElementById('settingEmail').value = data.email || '';
             updateDynamicBranchHeaders(data.branch_name, data.city, data.admin_name);
@@ -13366,7 +13366,7 @@ async function fetchMultiLiveDetections() {
         document.title = `${fullBranchText} - QIntellect Technologies`;
 
         // User / Admin display name
-        const displayName = adminName || 'Mr. Junaid';
+        const displayName = adminName || 'Mr. Abid';
         const sidebarUserEl = document.getElementById('sidebarUserName');
         if (sidebarUserEl) sidebarUserEl.textContent = displayName;
         const headerUserEl = document.getElementById('headerUserName');
@@ -13386,7 +13386,7 @@ async function fetchMultiLiveDetections() {
         const branch_name = document.getElementById('settingOrganizationName')?.value.trim();
         const city = document.getElementById('settingCity')?.value.trim();
         const company_name = branch_name;
-        const admin_name = document.getElementById('settingAdminName')?.value.trim() || 'Mr. Junaid';
+        const admin_name = document.getElementById('settingAdminName')?.value.trim() || 'Mr. Abid';
         const phone = document.getElementById('settingPhone')?.value.trim();
         const email = document.getElementById('settingEmail')?.value.trim();
 
