@@ -10,7 +10,8 @@ os.environ["CLOUD_DB_PATH"] = str(TEST_MOBILE_DB)
 os.environ["CLOUD_SECRET_KEY"] = "mobile-api-test-secret"
 
 from cloud.app import create_cloud_app
-from cloud.db import get_db_connection, ingest_attendance_batch, init_cloud_db
+from cloud.db import get_db_connection, get_staff_list, ingest_attendance_batch, init_cloud_db
+from cloud.shift_push import build_shift_snapshot
 from cloud.mobile_api import (
     _business_timezone,
     bootstrap_mobile_accounts_from_env,
@@ -98,6 +99,33 @@ class TestMobileApi(unittest.TestCase):
         self.assertEqual(admin_me.get_json()["account"]["name"], "ABID")
         self.assertEqual(admin_me.get_json()["account"]["department"], "FNK")
         self.assertEqual(admin_me.get_json()["account"]["position"], "Manager")
+
+    def test_shift_snapshot_includes_mobile_checkin_and_checkout_for_local_camera(self):
+        snapshot_db = Path(temp_dir) / 'mobile_shift_snapshot.db'
+        init_cloud_db(snapshot_db)
+        now = datetime.now(_business_timezone()).replace(microsecond=0)
+        checkin_time = now.replace(hour=9, minute=0)
+        checkout_time = now.replace(hour=17, minute=0)
+        with get_db_connection(snapshot_db) as conn:
+            staff = conn.execute(
+                "SELECT id FROM cloud_staff WHERE local_user_id = 95 AND branch_id = 'branch-main'"
+            ).fetchone()
+            conn.executemany(
+                """INSERT INTO cloud_attendance_events (
+                       id, org_id, branch_id, installation_id, local_attendance_id,
+                       staff_id, employee_name, timestamp, event_type, status, source
+                   ) VALUES (?, 'org-default', 'branch-main', 'mobile-snapshot-test', ?, ?, ?, ?, ?, ?, 'mobile')""",
+                [
+                    ('mobile-snapshot-checkin', 1, staff['id'], 'Sikander FnK', checkin_time.strftime('%Y-%m-%d %H:%M:%S'), 'checkin', 'present'),
+                    ('mobile-snapshot-checkout', 2, staff['id'], 'Sikander FnK', checkout_time.strftime('%Y-%m-%d %H:%M:%S'), 'checkout', 'checked_out'),
+                ],
+            )
+            conn.commit()
+
+        snapshot = build_shift_snapshot('branch-main', db_path=snapshot_db)
+        mobile_events = snapshot['mobile_attendance']
+        self.assertEqual([event['event_type'] for event in mobile_events], ['checkin', 'checkout'])
+        self.assertTrue(all(event['local_user_id'] == 95 for event in mobile_events))
 
     def test_environment_bootstrap_is_idempotent_and_preserves_mismatched_accounts(self):
         import json
@@ -233,6 +261,66 @@ class TestMobileApi(unittest.TestCase):
                 (self.employee_account_id, timestamp),
             ).fetchone()[0]
         self.assertEqual(count, 1)
+
+    def test_camera_attendance_ingestion_publishes_schedule_refresh(self):
+        timestamp = datetime.now(_business_timezone()).strftime("%Y-%m-%d %H:%M:%S")
+        with patch("cloud.mobile_api.notify_attendance_event"), \
+             patch("cloud.shift_push.publish_shift_snapshot") as publish_snapshot:
+            result = ingest_attendance_batch(
+                "org-default", "branch-main", "camera-refresh-installation", [{
+                    "local_attendance_id": 778899,
+                    "user_id": 99,
+                    "employee_name": "Siddique FnK",
+                    "timestamp": timestamp,
+                    "event_type": "checkin",
+                    "status": "present",
+                    "source": "camera",
+                    "camera_id": "front-door",
+                }],
+                db_path=TEST_MOBILE_DB,
+            )
+
+        self.assertEqual(result["accepted"], 1)
+        publish_snapshot.assert_called_once_with("branch-main", db_path=TEST_MOBILE_DB)
+
+    def test_mobile_checkout_is_available_after_camera_checkin_and_updates_schedule(self):
+        account_id = create_mobile_account(
+            "camera.checkout.test", "camera checkout test password", "employee", local_user_id=97
+        )
+        token = self.login("camera.checkout.test", "camera checkout test password")
+        headers = {"Authorization": f"Bearer {token}"}
+        staff = next(row for row in get_staff_list(branch_id="branch-main") if row["local_user_id"] == 97)
+        checkin_time = datetime.now(_business_timezone()) - timedelta(hours=1)
+        try:
+            with get_db_connection(TEST_MOBILE_DB) as conn:
+                conn.execute(
+                    """INSERT INTO cloud_attendance_events (
+                           id, org_id, branch_id, installation_id, local_attendance_id,
+                           staff_id, employee_name, timestamp, event_type, status, source, camera_id
+                       ) VALUES (?, 'org-default', 'branch-main', 'camera-checkout-test', 1, ?, ?, ?, 'checkin', 'present', 'camera', 'front-door')""",
+                    ("camera-checkin-for-mobile-checkout", staff["id"], staff["name"], checkin_time.strftime("%Y-%m-%d %H:%M:%S")),
+                )
+                conn.commit()
+
+            schedule_before = self.client.get("/api/v1/mobile/employee/schedule", headers=headers)
+            self.assertEqual(schedule_before.status_code, 200, schedule_before.get_json())
+            self.assertEqual(schedule_before.get_json()["schedule"]["attendance"]["source"], "camera")
+            self.assertIsNone(schedule_before.get_json()["schedule"]["checkout"])
+
+            checkout = self.client.post("/api/v1/mobile/employee/check-out", headers=headers, json={})
+            self.assertEqual(checkout.status_code, 201, checkout.get_json())
+
+            schedule_after = self.client.get("/api/v1/mobile/employee/schedule", headers=headers)
+            self.assertEqual(schedule_after.status_code, 200, schedule_after.get_json())
+            self.assertEqual(schedule_after.get_json()["schedule"]["checkout"]["source"], "mobile")
+        finally:
+            with get_db_connection(TEST_MOBILE_DB) as conn:
+                conn.execute(
+                    "DELETE FROM cloud_attendance_events WHERE staff_id = ? AND (installation_id = ? OR installation_id = ?)",
+                    (staff["id"], "camera-checkout-test", f"mobile:{account_id}"),
+                )
+                conn.execute("DELETE FROM mobile_accounts WHERE id = ?", (account_id,))
+                conn.commit()
 
     def test_mobile_late_checkin_and_checkout_flow(self):
         account_id = create_mobile_account(

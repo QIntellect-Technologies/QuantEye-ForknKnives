@@ -62,6 +62,14 @@ def _business_timezone() -> ZoneInfo:
         return ZoneInfo("UTC")
 
 
+def _publish_mobile_attendance_snapshot(branch_id: str) -> None:
+    try:
+        from cloud.shift_push import publish_shift_snapshot
+        publish_shift_snapshot(branch_id)
+    except Exception as error:
+        logger.warning("Could not publish mobile attendance to local clients: %s", error)
+
+
 def create_mobile_account(
     username: str,
     password: str,
@@ -592,6 +600,7 @@ def employee_check_in():
         conn.commit()
 
     notify_attendance_event(staff["staff_id"], "mobile", timestamp)
+    _publish_mobile_attendance_snapshot(staff["branch_id"])
     return jsonify({"success": True, "already_marked": False, "attendance": {"timestamp": timestamp, "source": "mobile", "status": attendance_status}}), 201
 
 
@@ -650,6 +659,7 @@ def employee_check_out():
         )
         conn.commit()
 
+    _publish_mobile_attendance_snapshot(staff["branch_id"])
     return jsonify({
         "success": True,
         "already_marked": False,

@@ -903,6 +903,7 @@ def ingest_attendance_batch(
         
     conn = get_db_connection(db_path)
     camera_notifications = []
+    should_publish_attendance_snapshot = False
     try:
         cursor = conn.cursor()
         # Explicit transaction start
@@ -1031,6 +1032,8 @@ def ingest_attendance_batch(
             ))
             results["accepted"] += 1
             results["accepted_local_ids"].append(local_id_int)
+            if source.strip().lower() != 'mobile':
+                should_publish_attendance_snapshot = True
             if staff_id and str(event_type).strip().lower() in {'checkin', 'check-in'}:
                 camera_notifications.append({
                     'staff_id': staff_id,
@@ -1051,6 +1054,13 @@ def ingest_attendance_batch(
         from cloud.mobile_api import notify_attendance_event
         for notification in camera_notifications:
             notify_attendance_event(**notification, db_path=db_path)
+
+    if should_publish_attendance_snapshot:
+        try:
+            from cloud.shift_push import publish_shift_snapshot
+            publish_shift_snapshot(branch_id, db_path=db_path)
+        except Exception as error:
+            logger.warning("Could not publish camera attendance to mobile clients: %s", error)
         
     return results
 
