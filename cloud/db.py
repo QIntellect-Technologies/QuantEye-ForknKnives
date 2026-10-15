@@ -773,6 +773,15 @@ def set_staff_attendance_status(
                  AND (staff_id = ? OR (staff_id IS NULL AND LOWER(employee_name) = LOWER(?)))''',
             (staff['branch_id'], target.isoformat(), staff['id'], staff['name'])
         ).fetchall()
+        if existing and normalized_status == 'absent':
+            existing_ids = [row['id'] for row in existing]
+            placeholders = ', '.join('?' for _ in existing_ids)
+            conn.execute(
+                f'DELETE FROM cloud_attendance_events WHERE id IN ({placeholders})',
+                existing_ids
+            )
+            existing = []
+
         if existing:
             existing_ids = [row['id'] for row in existing]
             placeholders = ', '.join('?' for _ in existing_ids)

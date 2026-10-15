@@ -288,27 +288,26 @@ def _shift_check(shift: Dict[str, Any], current: datetime) -> Dict[str, Any]:
         working_days = {0, 1, 2, 3, 4, 5}
 
     scheduled_date = current.date()
-    if start_minutes > end_minutes and current_minutes <= end_minutes:
+    is_overnight = start_minutes > end_minutes
+    if is_overnight and current_minutes <= end_minutes:
         from datetime import timedelta
         scheduled_date -= timedelta(days=1)
     if scheduled_date.weekday() not in working_days:
         return {"allowed": False, "reason": f"{scheduled_date.strftime('%A')} is not a scheduled workday."}
 
     grace = max(0, int(shift.get("grace_period_minutes") or 0))
-    if grace:
-        grace_end = start_minutes + grace
-        if grace_end < 1440:
-            allowed = start_minutes <= current_minutes <= grace_end
-        else:
-            allowed = current_minutes >= start_minutes or current_minutes <= grace_end % 1440
-    elif start_minutes <= end_minutes:
-        allowed = start_minutes <= current_minutes <= end_minutes
+    if is_overnight:
+        within_shift = current_minutes >= start_minutes or current_minutes <= end_minutes
+        elapsed_minutes = current_minutes - start_minutes if current_minutes >= start_minutes else 1440 - start_minutes + current_minutes
     else:
-        allowed = current_minutes >= start_minutes or current_minutes <= end_minutes
+        within_shift = start_minutes <= current_minutes <= end_minutes
+        elapsed_minutes = current_minutes - start_minutes
 
-    if not allowed:
+    if not within_shift:
         return {"allowed": False, "reason": f"Check-in is outside {shift['shift_name']} hours."}
-    return {"allowed": True, "reason": "Within the assigned shift."}
+    attendance_status = "late" if elapsed_minutes > grace else "present"
+    reason = "Late check-in; the grace period has ended." if attendance_status == "late" else "Within the grace period."
+    return {"allowed": True, "status": attendance_status, "reason": reason}
 
 
 def _attendance_for_day(staff_id: str, target_date: str, db_path=None):
@@ -320,6 +319,20 @@ def _attendance_for_day(staff_id: str, target_date: str, db_path=None):
                  AND LOWER(event_type) IN ('checkin', 'check-in')
                  AND LOWER(status) IN ('present', 'late', 'checked_out')
                ORDER BY timestamp ASC LIMIT 1""",
+            (staff_id, target_date),
+        ).fetchone()
+    return dict(row) if row else None
+
+
+def _checkout_for_day(staff_id: str, target_date: str, db_path=None):
+    with get_db_connection(db_path) as conn:
+        row = conn.execute(
+            """SELECT timestamp, source, camera_id, event_type, status
+               FROM cloud_attendance_events
+               WHERE staff_id = ? AND DATE(timestamp) = ?
+                 AND LOWER(event_type) IN ('checkout', 'check-out')
+                 AND LOWER(status) = 'checked_out'
+               ORDER BY timestamp DESC LIMIT 1""",
             (staff_id, target_date),
         ).fetchone()
     return dict(row) if row else None
@@ -477,12 +490,14 @@ def employee_schedule():
     now = datetime.now(_business_timezone())
     shift_result = _shift_check(staff, now)
     attendance = _attendance_for_day(staff["staff_id"], now.date().isoformat())
+    checkout = _checkout_for_day(staff["staff_id"], now.date().isoformat())
     schedule = {
         "shift_name": staff["shift_name"], "start_time": staff["start_time"],
         "end_time": staff["end_time"], "grace_period_minutes": staff["grace_period_minutes"],
         "working_days": json.loads(staff["working_days"] or "[0,1,2,3,4,5]"),
         "local_date": now.date().isoformat(), "allowed": shift_result["allowed"],
-        "reason": shift_result["reason"], "attendance": attendance,
+        "reason": shift_result["reason"], "checkin_status": shift_result.get("status"),
+        "attendance": attendance, "checkout": checkout,
     }
     return jsonify({"success": True, "schedule": schedule}), 200
 
@@ -499,12 +514,13 @@ def employee_check_in():
     if not shift_result["allowed"]:
         return jsonify({"success": False, "error": shift_result["reason"], "schedule": shift_result}), 409
 
+    attendance_status = shift_result["status"]
     timestamp = now.strftime("%Y-%m-%d %H:%M:%S")
     date_key = int(now.strftime("%Y%m%d"))
     with get_db_connection() as conn:
         conn.execute("BEGIN IMMEDIATE")
         existing = conn.execute(
-            """SELECT id, timestamp, source, camera_id FROM cloud_attendance_events
+            """SELECT id, timestamp, source, camera_id, status FROM cloud_attendance_events
                WHERE staff_id = ? AND DATE(timestamp) = ?
                  AND LOWER(event_type) IN ('checkin', 'check-in')
                  AND LOWER(status) IN ('present', 'late', 'checked_out')
@@ -515,7 +531,7 @@ def employee_check_in():
             conn.commit()
             return jsonify({
                 "success": True, "already_marked": True,
-                "attendance": {"timestamp": existing["timestamp"], "source": existing["source"], "camera_id": existing["camera_id"]},
+                "attendance": {"timestamp": existing["timestamp"], "source": existing["source"], "camera_id": existing["camera_id"], "status": existing["status"]},
                 "message": "Attendance was already marked for this shift.",
             }), 200
 
@@ -527,9 +543,9 @@ def employee_check_in():
         ).fetchone()
         if absent:
             conn.execute(
-                """UPDATE cloud_attendance_events SET timestamp = ?, status = 'present', source = 'mobile',
+                     """UPDATE cloud_attendance_events SET timestamp = ?, status = ?, source = 'mobile',
                    marked_by = ?, notes = 'Employee mobile check-in' WHERE id = ?""",
-                (timestamp, account["username"], absent["id"]),
+                     (timestamp, attendance_status, account["username"], absent["id"]),
             )
         else:
             conn.execute(
@@ -537,15 +553,77 @@ def employee_check_in():
                        id, org_id, branch_id, installation_id, local_attendance_id,
                        staff_id, employee_name, timestamp, event_type, status,
                        confidence, location, source, marked_by, notes
-                   ) VALUES (?, 'org-default', ?, ?, ?, ?, ?, ?, 'checkin', 'present', 1.0, '', 'mobile', ?, 'Employee mobile check-in')
+                                     ) VALUES (?, 'org-default', ?, ?, ?, ?, ?, ?, 'checkin', ?, 1.0, '', 'mobile', ?, 'Employee mobile check-in')
                    ON CONFLICT(installation_id, local_attendance_id) DO NOTHING""",
                 (f"att-{uuid.uuid4().hex[:12]}", staff["branch_id"], f"mobile:{account['id']}",
-                 date_key * 2, staff["staff_id"], staff["name"], timestamp, account["username"]),
+                                 date_key * 2, staff["staff_id"], staff["name"], timestamp, attendance_status, account["username"]),
             )
         conn.commit()
 
     notify_attendance_event(staff["staff_id"], "mobile", timestamp)
-    return jsonify({"success": True, "already_marked": False, "attendance": {"timestamp": timestamp, "source": "mobile"}}), 201
+    return jsonify({"success": True, "already_marked": False, "attendance": {"timestamp": timestamp, "source": "mobile", "status": attendance_status}}), 201
+
+
+@mobile_bp.post("/employee/check-out")
+@require_mobile_role("employee")
+def employee_check_out():
+    account = g.mobile_account
+    staff = _get_employee_context(account)
+    if not staff:
+        return jsonify({"success": False, "error": "No active cloud shift is assigned."}), 404
+
+    now = datetime.now(_business_timezone())
+    target_date = now.date().isoformat()
+    timestamp = now.strftime("%Y-%m-%d %H:%M:%S")
+    date_key = int(now.strftime("%Y%m%d"))
+    with get_db_connection() as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        checkin = conn.execute(
+            """SELECT timestamp FROM cloud_attendance_events
+               WHERE staff_id = ? AND DATE(timestamp) = ?
+                 AND LOWER(event_type) IN ('checkin', 'check-in')
+                 AND LOWER(status) IN ('present', 'late', 'checked_out')
+               ORDER BY timestamp ASC LIMIT 1""",
+            (staff["staff_id"], target_date),
+        ).fetchone()
+        if not checkin:
+            conn.rollback()
+            return jsonify({"success": False, "error": "Check in before checking out."}), 409
+
+        existing = conn.execute(
+            """SELECT timestamp, source, camera_id, status FROM cloud_attendance_events
+               WHERE staff_id = ? AND DATE(timestamp) = ?
+                 AND LOWER(event_type) IN ('checkout', 'check-out')
+                 AND LOWER(status) = 'checked_out'
+               ORDER BY timestamp DESC LIMIT 1""",
+            (staff["staff_id"], target_date),
+        ).fetchone()
+        if existing:
+            conn.commit()
+            return jsonify({
+                "success": True,
+                "already_marked": True,
+                "attendance": dict(existing),
+                "message": "Check-out was already recorded for this shift.",
+            }), 200
+
+        conn.execute(
+            """INSERT INTO cloud_attendance_events (
+                   id, org_id, branch_id, installation_id, local_attendance_id,
+                   staff_id, employee_name, timestamp, event_type, status,
+                   confidence, location, source, marked_by, notes
+               ) VALUES (?, 'org-default', ?, ?, ?, ?, ?, ?, 'checkout', 'checked_out', 1.0, '', 'mobile', ?, 'Employee mobile check-out')
+               ON CONFLICT(installation_id, local_attendance_id) DO NOTHING""",
+            (f"att-{uuid.uuid4().hex[:12]}", staff["branch_id"], f"mobile:{account['id']}",
+             date_key * 2 + 1, staff["staff_id"], staff["name"], timestamp, account["username"]),
+        )
+        conn.commit()
+
+    return jsonify({
+        "success": True,
+        "already_marked": False,
+        "attendance": {"timestamp": timestamp, "source": "mobile", "status": "checked_out"},
+    }), 201
 
 
 @mobile_bp.get("/admin/attendance")

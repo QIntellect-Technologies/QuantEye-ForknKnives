@@ -694,6 +694,43 @@ class TestCloudPhase1Integration(unittest.TestCase):
         self.assertEqual(rows[0]['source'], 'manual')
         self.assertEqual(rows[0]['marked_by'], 'Admin')
 
+    def test_manual_absence_replaces_same_day_checkin_and_checkout(self):
+        employee = next(staff for staff in get_staff_list(branch_id='branch-main', active_only=True) if staff['local_user_id'] == 95)
+        target_date = '2099-08-18'
+        with get_db_connection(TEST_CLOUD_DB) as conn:
+            for local_id, event_type, status, timestamp in (
+                (87650011, 'checkin', 'late', f'{target_date} 09:20:00'),
+                (87650012, 'checkout', 'checked_out', f'{target_date} 17:10:00'),
+            ):
+                conn.execute('''
+                    INSERT INTO cloud_attendance_events (
+                        id, org_id, branch_id, installation_id, local_attendance_id,
+                        staff_id, employee_name, timestamp, event_type, status, source
+                    ) VALUES (?, 'org-default', 'branch-main', ?, ?, ?, ?, ?, ?, ?, 'camera')
+                ''', (
+                    f'att-test-absence-{local_id}', 'test-absence-cleanup', local_id,
+                    employee['id'], employee['name'], timestamp, event_type, status,
+                ))
+
+        result = set_staff_attendance_status(
+            user_id='95', target_date=target_date, status='absent',
+            notes='Scenario reset', db_path=TEST_CLOUD_DB
+        )
+
+        with get_db_connection(TEST_CLOUD_DB) as conn:
+            rows = conn.execute(
+                'SELECT event_type, status, source, marked_by FROM cloud_attendance_events '
+                'WHERE staff_id = ? AND DATE(timestamp) = ?',
+                (employee['id'], target_date),
+            ).fetchall()
+
+        self.assertIsNotNone(result)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]['event_type'], 'checkin')
+        self.assertEqual(rows[0]['status'], 'absent')
+        self.assertEqual(rows[0]['source'], 'manual')
+        self.assertEqual(rows[0]['marked_by'], 'Admin')
+
     def test_10_concurrent_batch_ingestion(self):
         """Verify concurrent sync requests handle transactions without data loss or SQLite deadlocks."""
         inst_id = "inst-pilot-001"

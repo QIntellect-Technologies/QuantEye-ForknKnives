@@ -167,6 +167,7 @@ class TestMobileApi(unittest.TestCase):
         checkin = self.client.post("/api/v1/mobile/employee/check-in", headers=headers, json={})
         self.assertEqual(checkin.status_code, 201, checkin.get_json())
         self.assertEqual(checkin.get_json()["attendance"]["source"], "mobile")
+        self.assertEqual(checkin.get_json()["attendance"]["status"], "present")
 
         timestamp = checkin.get_json()["attendance"]["timestamp"]
         result = ingest_attendance_batch(
@@ -195,6 +196,86 @@ class TestMobileApi(unittest.TestCase):
                 (self.employee_account_id, timestamp),
             ).fetchone()[0]
         self.assertEqual(count, 1)
+
+    def test_mobile_late_checkin_and_checkout_flow(self):
+        account_id = create_mobile_account(
+            "late.employee", "late employee test password", "employee", local_user_id=96
+        )
+        token = self.login("late.employee", "late employee test password")
+        headers = {"Authorization": f"Bearer {token}"}
+        now = datetime.now(_business_timezone())
+        start = (now - timedelta(minutes=30)).strftime("%H:%M")
+        end = (now + timedelta(minutes=90)).strftime("%H:%M")
+        with get_db_connection(TEST_MOBILE_DB) as conn:
+            shift_id = conn.execute(
+                "SELECT id FROM cloud_shifts WHERE id = 'shift-morning-default'"
+            ).fetchone()[0]
+            original_staff_shift = conn.execute(
+                "SELECT shift_id FROM cloud_staff WHERE local_user_id = 96"
+            ).fetchone()[0]
+            original_shift = conn.execute(
+                "SELECT start_time, end_time, grace_period_minutes, working_days FROM cloud_shifts WHERE id = 'shift-morning-default'"
+            ).fetchone()
+            conn.execute(
+                "UPDATE cloud_shifts SET start_time = ?, end_time = ?, grace_period_minutes = 5, working_days = '[0,1,2,3,4,5,6]' WHERE id = 'shift-morning-default'",
+                (start, end),
+            )
+            conn.execute("UPDATE cloud_staff SET shift_id = ? WHERE local_user_id = 96", (shift_id,))
+            conn.commit()
+
+        try:
+            schedule = self.client.get("/api/v1/mobile/employee/schedule", headers=headers)
+            self.assertEqual(schedule.status_code, 200, schedule.get_json())
+            self.assertTrue(schedule.get_json()["schedule"]["allowed"])
+            self.assertEqual(schedule.get_json()["schedule"]["checkin_status"], "late")
+
+            checkin = self.client.post("/api/v1/mobile/employee/check-in", headers=headers, json={})
+            self.assertEqual(checkin.status_code, 201, checkin.get_json())
+            self.assertEqual(checkin.get_json()["attendance"]["status"], "late")
+
+            schedule_after_checkin = self.client.get("/api/v1/mobile/employee/schedule", headers=headers)
+            self.assertEqual(schedule_after_checkin.get_json()["schedule"]["attendance"]["status"], "late")
+            self.assertIsNone(schedule_after_checkin.get_json()["schedule"]["checkout"])
+
+            checkout = self.client.post("/api/v1/mobile/employee/check-out", headers=headers, json={})
+            self.assertEqual(checkout.status_code, 201, checkout.get_json())
+            self.assertEqual(checkout.get_json()["attendance"]["status"], "checked_out")
+
+            repeated_checkout = self.client.post("/api/v1/mobile/employee/check-out", headers=headers, json={})
+            self.assertEqual(repeated_checkout.status_code, 200, repeated_checkout.get_json())
+            self.assertTrue(repeated_checkout.get_json()["already_marked"])
+
+            schedule_after_checkout = self.client.get("/api/v1/mobile/employee/schedule", headers=headers)
+            self.assertEqual(schedule_after_checkout.get_json()["schedule"]["checkout"]["status"], "checked_out")
+
+            with get_db_connection(TEST_MOBILE_DB) as conn:
+                events = conn.execute(
+                    "SELECT event_type, status FROM cloud_attendance_events WHERE staff_id = (SELECT staff_id FROM mobile_accounts WHERE id = ?) ORDER BY event_type",
+                    (account_id,),
+                ).fetchall()
+            self.assertEqual([(row["event_type"], row["status"]) for row in events], [
+                ("checkin", "late"), ("checkout", "checked_out")
+            ])
+        finally:
+            with get_db_connection(TEST_MOBILE_DB) as conn:
+                conn.execute(
+                    "UPDATE cloud_shifts SET start_time = ?, end_time = ?, grace_period_minutes = ?, working_days = ? WHERE id = 'shift-morning-default'",
+                    tuple(original_shift),
+                )
+                conn.execute("UPDATE cloud_staff SET shift_id = ? WHERE local_user_id = 96", (original_staff_shift,))
+                conn.commit()
+
+    def test_mobile_checkout_requires_checkin(self):
+        create_mobile_account(
+            "checkout.employee", "checkout employee test password", "employee", local_user_id=97
+        )
+        token = self.login("checkout.employee", "checkout employee test password")
+        response = self.client.post(
+            "/api/v1/mobile/employee/check-out",
+            headers={"Authorization": f"Bearer {token}"},
+            json={},
+        )
+        self.assertEqual(response.status_code, 409)
 
     def test_admin_can_view_attendance_but_employee_cannot(self):
         admin_headers = {"Authorization": f"Bearer {self.admin_token}"}
