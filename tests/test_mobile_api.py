@@ -13,6 +13,7 @@ from cloud.app import create_cloud_app
 from cloud.db import get_db_connection, ingest_attendance_batch, init_cloud_db
 from cloud.mobile_api import (
     _business_timezone,
+    bootstrap_mobile_accounts_from_env,
     create_mobile_account,
     load_mobile_shift_socket_account,
     notify_attendance_event,
@@ -97,6 +98,65 @@ class TestMobileApi(unittest.TestCase):
         self.assertEqual(admin_me.get_json()["account"]["name"], "ABID")
         self.assertEqual(admin_me.get_json()["account"]["department"], "FNK")
         self.assertEqual(admin_me.get_json()["account"]["position"], "Manager")
+
+    def test_environment_bootstrap_is_idempotent_and_preserves_mismatched_accounts(self):
+        import json
+
+        accounts = [
+            {"username": "bootstrap.employee", "password": "employee bootstrap password", "role": "employee", "branch_id": "branch-main", "employee_id": 95},
+            {"username": "bootstrap.admin", "password": "administrator bootstrap password", "role": "admin", "branch_id": "branch-main", "employee_id": None},
+        ]
+        with patch.dict(os.environ, {"MOBILE_BOOTSTRAP_ACCOUNTS": json.dumps(accounts)}):
+            first = bootstrap_mobile_accounts_from_env(TEST_MOBILE_DB)
+            second = bootstrap_mobile_accounts_from_env(TEST_MOBILE_DB)
+
+        self.assertEqual(first, {"created": 2, "unchanged": 0, "mismatched": 0})
+        self.assertEqual(second, {"created": 0, "unchanged": 2, "mismatched": 0})
+
+        accounts[0]["employee_id"] = 96
+        accounts[0]["password"] = "replacement bootstrap password"
+        with patch.dict(os.environ, {"MOBILE_BOOTSTRAP_ACCOUNTS": json.dumps(accounts)}):
+            mismatch = bootstrap_mobile_accounts_from_env(TEST_MOBILE_DB)
+
+        self.assertEqual(mismatch, {"created": 0, "unchanged": 1, "mismatched": 1})
+        valid_login = self.client.post(
+            "/api/v1/mobile/login",
+            json={"username": "bootstrap.employee", "password": "employee bootstrap password"},
+        )
+        invalid_login = self.client.post(
+            "/api/v1/mobile/login",
+            json={"username": "bootstrap.employee", "password": "replacement bootstrap password"},
+        )
+        self.assertEqual(valid_login.status_code, 200)
+        self.assertEqual(invalid_login.status_code, 401)
+        with get_db_connection(TEST_MOBILE_DB) as conn:
+            mapping = conn.execute(
+                "SELECT s.local_user_id FROM mobile_accounts a JOIN cloud_staff s ON s.id = a.staff_id WHERE a.username = ?",
+                ("bootstrap.employee",),
+            ).fetchone()[0]
+            account_count = conn.execute(
+                "SELECT COUNT(*) FROM mobile_accounts WHERE username LIKE 'bootstrap.%'"
+            ).fetchone()[0]
+        self.assertEqual(mapping, 95)
+        self.assertEqual(account_count, 2)
+
+    def test_environment_bootstrap_rejects_short_password_without_logging_it(self):
+        import json
+
+        config = [{"username": "too.short", "password": "1234567", "role": "admin"}]
+        with patch.dict(os.environ, {"MOBILE_BOOTSTRAP_ACCOUNTS": json.dumps(config)}):
+            with self.assertRaisesRegex(ValueError, "at least 10 characters"):
+                bootstrap_mobile_accounts_from_env(TEST_MOBILE_DB)
+
+    def test_bad_bootstrap_config_does_not_prevent_cloud_app_startup(self):
+        import json
+
+        config = [{"username": "too.short", "password": "1234567", "role": "admin"}]
+        with patch.dict(os.environ, {"MOBILE_BOOTSTRAP_ACCOUNTS": json.dumps(config)}):
+            with self.assertLogs("cloud.app", level="ERROR") as captured:
+                app = create_cloud_app(init_db_on_start=True)
+        self.assertNotIn("1234567", "\n".join(captured.output))
+        self.assertIsNotNone(app)
 
     def test_employee_checkin_uses_shift_and_camera_cannot_duplicate_it(self):
         headers = {"Authorization": f"Bearer {self.employee_token}"}

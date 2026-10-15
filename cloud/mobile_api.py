@@ -107,6 +107,120 @@ def create_mobile_account(
     return account_id
 
 
+def bootstrap_mobile_accounts_from_env(db_path=None) -> Dict[str, int]:
+    """Provision configured mobile accounts without exposing passwords in logs."""
+    raw_config = os.environ.get("MOBILE_BOOTSTRAP_ACCOUNTS")
+    result = {"created": 0, "unchanged": 0, "mismatched": 0}
+    if not raw_config:
+        return result
+
+    try:
+        configured_accounts = json.loads(raw_config)
+    except json.JSONDecodeError as error:
+        raise ValueError("MOBILE_BOOTSTRAP_ACCOUNTS must contain valid JSON") from error
+    if not isinstance(configured_accounts, list):
+        raise ValueError("MOBILE_BOOTSTRAP_ACCOUNTS must be a JSON array")
+
+    accounts = []
+    seen_usernames = set()
+    selected_employee_ids = set(get_selected_deployment_employee_ids())
+    for index, entry in enumerate(configured_accounts):
+        if not isinstance(entry, dict):
+            raise ValueError(f"Mobile bootstrap entry {index + 1} must be an object")
+
+        username = str(entry.get("username") or "").strip()
+        password = entry.get("password")
+        role = str(entry.get("role") or "employee").strip().lower()
+        branch_id = str(entry.get("branch_id") or "branch-main").strip()
+        employee_id = entry.get("employee_id")
+        if len(username) < 3:
+            raise ValueError(f"Mobile bootstrap entry {index + 1} has an invalid username")
+        if not isinstance(password, str) or len(password) < 10:
+            raise ValueError(f"Mobile bootstrap password for '{username}' must contain at least 10 characters")
+        if role not in {"employee", "admin"}:
+            raise ValueError(f"Mobile bootstrap role for '{username}' must be employee or admin")
+        if not branch_id:
+            raise ValueError(f"Mobile bootstrap branch for '{username}' cannot be empty")
+
+        if role == "employee":
+            if isinstance(employee_id, bool):
+                raise ValueError(f"Mobile employee '{username}' requires a valid employee_id")
+            try:
+                employee_id = int(employee_id)
+            except (TypeError, ValueError) as error:
+                raise ValueError(f"Mobile employee '{username}' requires a valid employee_id") from error
+            if employee_id not in selected_employee_ids:
+                raise ValueError(f"Mobile employee '{username}' must map to a selected FNK employee ID")
+        elif employee_id is not None:
+            raise ValueError(f"Mobile admin '{username}' must not have an employee_id")
+
+        normalized_key = username.casefold()
+        if normalized_key in seen_usernames:
+            raise ValueError(f"Duplicate mobile bootstrap username '{username}'")
+        seen_usernames.add(normalized_key)
+        accounts.append({
+            "username": username,
+            "password": password,
+            "role": role,
+            "branch_id": branch_id,
+            "employee_id": employee_id,
+            "display_name": entry.get("display_name"),
+            "department": entry.get("department"),
+            "position": entry.get("position"),
+        })
+
+    for account in accounts:
+        with get_db_connection(db_path) as conn:
+            existing = conn.execute(
+                """SELECT a.id, a.role, a.branch_id, a.staff_id, s.id AS resolved_staff_id,
+                          s.local_user_id, s.branch_id AS staff_branch_id
+                   FROM mobile_accounts a
+                   LEFT JOIN cloud_staff s ON s.id = a.staff_id
+                   WHERE a.username = ?""",
+                (account["username"],),
+            ).fetchone()
+
+        if existing:
+            expected_employee_id = account["employee_id"]
+            mapping_matches = (
+                existing["local_user_id"] == expected_employee_id
+                and (expected_employee_id is None or existing["resolved_staff_id"] is not None)
+                and (expected_employee_id is None or existing["staff_branch_id"] == account["branch_id"])
+                and (expected_employee_id is not None or existing["staff_id"] is None)
+            )
+            if (
+                existing["role"] == account["role"]
+                and existing["branch_id"] == account["branch_id"]
+                and mapping_matches
+            ):
+                result["unchanged"] += 1
+                logger.info("Mobile bootstrap account '%s' already matches its configured role and mapping.", account["username"])
+            else:
+                result["mismatched"] += 1
+                logger.warning("Mobile bootstrap account '%s' has a role, branch, or employee mapping mismatch; leaving it unchanged.", account["username"])
+            continue
+
+        create_mobile_account(
+            username=account["username"],
+            password=account["password"],
+            role=account["role"],
+            local_user_id=account["employee_id"],
+            branch_id=account["branch_id"],
+            display_name=account["display_name"],
+            department=account["department"],
+            position=account["position"],
+            db_path=db_path,
+        )
+        result["created"] += 1
+        logger.info("Provisioned mobile bootstrap account '%s' with role '%s'.", account["username"], account["role"])
+
+    logger.info(
+        "Mobile account bootstrap finished: %d created, %d unchanged, %d mismatched.",
+        result["created"], result["unchanged"], result["mismatched"],
+    )
+    return result
+
+
 def _load_account_token():
     auth_header = request.headers.get("Authorization", "")
     if not auth_header.startswith("Bearer "):

@@ -38,7 +38,7 @@ from cloud.routes_shifts import shifts_bp
 from cloud.routes_staff import staff_bp
 from cloud.routes_reports import reports_bp, api_get_attendance_reports
 from cloud.routes_sync import sync_bp
-from cloud.mobile_api import load_mobile_shift_socket_account, mobile_bp
+from cloud.mobile_api import bootstrap_mobile_accounts_from_env, load_mobile_shift_socket_account, mobile_bp
 from cloud.auth import validate_sync_credentials
 from cloud.shift_push import build_shift_snapshot, register_shift_client, unregister_shift_client
 
@@ -364,6 +364,10 @@ def create_cloud_app(init_db_on_start: bool = True) -> Flask:
 
     if init_db_on_start:
         init_cloud_db()
+        try:
+            bootstrap_mobile_accounts_from_env()
+        except Exception:
+            logger.exception("Mobile account bootstrap failed; cloud service will continue without provisioning.")
         
     return app
 
