@@ -9955,10 +9955,10 @@ async function fetchMultiLiveDetections() {
               statusBadge = `<span class="badge" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; padding:3px 9px; font-size:0.76em;"><i class="fa-solid fa-umbrella-beach"></i> ${leaveLabel}</span>`;
             } else if (st === 'checked_out' || (r.last_seen && r.last_seen !== '--:--' && r.last_seen !== '-')) {
               statusBadge = '<span class="badge" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; padding:3px 9px; font-size:0.76em;"><i class="fa-solid fa-right-from-bracket"></i> Checked Out</span>';
-            } else if (st === 'present' || hasAttendance) {
-              statusBadge = '<span class="badge" style="background:#e6f4ea; color:#1e8e3e; border:1px solid #a8dab5; padding:3px 9px; font-size:0.76em;"><i class="fa-solid fa-circle-check"></i> Present</span>';
             } else if (st === 'late') {
               statusBadge = '<span class="badge" style="background:#fef7e0; color:#b06000; border:1px solid #f9e29c; padding:3px 9px; font-size:0.76em;"><i class="fa-solid fa-clock"></i> Late</span>';
+            } else if (st === 'present' || hasAttendance) {
+              statusBadge = '<span class="badge" style="background:#e6f4ea; color:#1e8e3e; border:1px solid #a8dab5; padding:3px 9px; font-size:0.76em;"><i class="fa-solid fa-circle-check"></i> Present</span>';
             } else {
               statusBadge = '<span class="badge" style="background:#fce8e6; color:#d93025; border:1px solid #f5b4b0; padding:3px 9px; font-size:0.76em;"><i class="fa-solid fa-circle-xmark"></i> Absent</span>';
             }
