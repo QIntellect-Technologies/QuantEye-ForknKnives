@@ -22,6 +22,7 @@ if str(_ROOT_DIR) not in sys.path:
 from cloud.config import CLOUD_API_PREFIX, CLOUD_DB_PATH, ADMIN_CONFIG_PASSWORD, CLOUD_SECRET_KEY
 from cloud.db import (
     init_cloud_db,
+    purge_cloud_attendance_events_once,
     get_staff_list,
     get_staff_by_id,
     set_staff_attendance_status,
@@ -364,6 +365,15 @@ def create_cloud_app(init_db_on_start: bool = True) -> Flask:
 
     if init_db_on_start:
         init_cloud_db()
+        purge_confirmation = os.environ.get("PURGE_CLOUD_ATTENDANCE_CONFIRM", "")
+        purge_operation_id = os.environ.get("PURGE_CLOUD_ATTENDANCE_OPERATION_ID", "")
+        if purge_confirmation == "DELETE_ALL_TEST_ATTENDANCE" and purge_operation_id.strip():
+            try:
+                purge_cloud_attendance_events_once(purge_operation_id)
+            except Exception:
+                logger.exception("One-time attendance cleanup failed; cloud service will continue without purging.")
+        elif purge_confirmation or purge_operation_id:
+            logger.warning("Attendance cleanup was requested without the required confirmation and operation ID; no rows were deleted.")
         try:
             bootstrap_mobile_accounts_from_env()
         except Exception:

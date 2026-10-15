@@ -121,6 +121,43 @@ def get_db_connection(db_path: Optional[Path] = None) -> sqlite3.Connection:
     return conn
 
 
+def purge_cloud_attendance_events_once(operation_id: str, db_path: Optional[Path] = None) -> Dict[str, Any]:
+    """Delete attendance events once per operation ID, preserving all other data."""
+    normalized_operation_id = str(operation_id or "").strip()
+    if len(normalized_operation_id) < 12:
+        raise ValueError("Attendance purge operation ID must contain at least 12 characters")
+
+    with get_db_connection(db_path) as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS cloud_maintenance_operations (
+                operation_id TEXT PRIMARY KEY,
+                operation TEXT NOT NULL,
+                rows_affected INTEGER NOT NULL,
+                completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        existing = conn.execute(
+            "SELECT rows_affected FROM cloud_maintenance_operations WHERE operation_id = ? AND operation = ?",
+            (normalized_operation_id, "purge_cloud_attendance_events"),
+        ).fetchone()
+        if existing:
+            conn.commit()
+            logger.info("Attendance purge operation was already completed; no rows were deleted.")
+            return {"deleted": False, "rows_affected": 0, "already_completed": True}
+
+        rows_affected = int(conn.execute("SELECT COUNT(*) FROM cloud_attendance_events").fetchone()[0])
+        conn.execute("DELETE FROM cloud_attendance_events")
+        conn.execute(
+            "INSERT INTO cloud_maintenance_operations (operation_id, operation, rows_affected) VALUES (?, ?, ?)",
+            (normalized_operation_id, "purge_cloud_attendance_events", rows_affected),
+        )
+        conn.commit()
+
+    logger.info("One-time attendance cleanup completed; %d attendance rows deleted.", rows_affected)
+    return {"deleted": True, "rows_affected": rows_affected, "already_completed": False}
+
+
 def init_cloud_db(db_path: Optional[Path] = None):
     """
     Initialize schema for cloud modules:

@@ -29,6 +29,7 @@ os.environ['CLOUD_SECRET_KEY'] = 'test-secret-key-phase1-validation'
 
 from cloud.db import (
     init_cloud_db, get_db_connection, get_organizations, get_branches,
+    purge_cloud_attendance_events_once,
     create_shift, get_shifts, create_or_sync_staff, get_staff_list,
     ingest_attendance_batch, query_attendance_reports, set_staff_attendance_status
 )
@@ -81,6 +82,46 @@ class TestCloudPhase1Integration(unittest.TestCase):
             self.assertIn("cloud_shifts", tables)
             self.assertIn("cloud_staff", tables)
             self.assertIn("cloud_attendance_events", tables)
+
+    def test_attendance_purge_is_scoped_and_runs_once_per_operation(self):
+        purge_db = Path(temp_dir) / "attendance_purge_test.db"
+        init_cloud_db(purge_db)
+        with get_db_connection(purge_db) as conn:
+            staff = conn.execute(
+                "SELECT id FROM cloud_staff WHERE local_user_id = 95 AND branch_id = 'branch-main'"
+            ).fetchone()
+            conn.execute(
+                """INSERT INTO cloud_attendance_events (
+                       id, org_id, branch_id, installation_id, local_attendance_id,
+                       staff_id, employee_name, timestamp, event_type, status
+                   ) VALUES (?, 'org-default', 'branch-main', ?, 1, ?, ?, ?, 'checkin', 'present')""",
+                ("purge-test-event", "purge-test-installation", staff["id"], "Sikander FnK", "2026-10-15 09:00:00"),
+            )
+            conn.commit()
+
+        first = purge_cloud_attendance_events_once("test-purge-operation-20261015", purge_db)
+        self.assertEqual(first, {"deleted": True, "rows_affected": 1, "already_completed": False})
+
+        with get_db_connection(purge_db) as conn:
+            conn.execute(
+                """INSERT INTO cloud_attendance_events (
+                       id, org_id, branch_id, installation_id, local_attendance_id,
+                       staff_id, employee_name, timestamp, event_type, status
+                   ) VALUES (?, 'org-default', 'branch-main', ?, 2, ?, ?, ?, 'checkin', 'present')""",
+                ("post-purge-event", "purge-test-installation", staff["id"], "Sikander FnK", "2026-10-15 10:00:00"),
+            )
+            conn.commit()
+
+        repeated = purge_cloud_attendance_events_once("test-purge-operation-20261015", purge_db)
+        with get_db_connection(purge_db) as conn:
+            event_count = conn.execute("SELECT COUNT(*) FROM cloud_attendance_events").fetchone()[0]
+            staff_count = conn.execute("SELECT COUNT(*) FROM cloud_staff").fetchone()[0]
+        self.assertEqual(repeated, {"deleted": False, "rows_affected": 0, "already_completed": True})
+        self.assertEqual(event_count, 1)
+        self.assertEqual(staff_count, 5)
+
+        with self.assertRaisesRegex(ValueError, "at least 12 characters"):
+            purge_cloud_attendance_events_once("short", purge_db)
 
     def test_03_license_generation_and_validation(self):
         """Test license generation, tamper protection, installation binding, and expiration."""
