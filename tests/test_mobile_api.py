@@ -140,6 +140,43 @@ class TestMobileApi(unittest.TestCase):
         self.assertEqual(mapping, 95)
         self.assertEqual(account_count, 2)
 
+    def test_environment_bootstrap_accepts_six_individual_account_variables(self):
+        import json
+
+        variables = {"MOBILE_BOOTSTRAP_ACCOUNTS": ""}
+        for account_number in range(1, 7):
+            account = {
+                "username": f"split.bootstrap.{account_number}",
+                "password": f"separate bootstrap password {account_number}",
+                "role": "admin",
+            }
+            variables[f"MOBILE_BOOTSTRAP_ACCOUNT_{account_number}"] = json.dumps(account)
+
+        with patch.dict(os.environ, variables):
+            first = bootstrap_mobile_accounts_from_env(TEST_MOBILE_DB)
+            second = bootstrap_mobile_accounts_from_env(TEST_MOBILE_DB)
+
+        self.assertEqual(first, {"created": 6, "unchanged": 0, "mismatched": 0})
+        self.assertEqual(second, {"created": 0, "unchanged": 6, "mismatched": 0})
+        login = self.client.post(
+            "/api/v1/mobile/login",
+            json={"username": "split.bootstrap.6", "password": "separate bootstrap password 6"},
+        )
+        self.assertEqual(login.status_code, 200)
+
+    def test_environment_bootstrap_rejects_incomplete_numbered_accounts(self):
+        import json
+
+        variables = {"MOBILE_BOOTSTRAP_ACCOUNTS": ""}
+        variables["MOBILE_BOOTSTRAP_ACCOUNT_1"] = json.dumps({
+            "username": "incomplete.bootstrap",
+            "password": "separate bootstrap password",
+            "role": "admin",
+        })
+        with patch.dict(os.environ, variables):
+            with self.assertRaisesRegex(ValueError, "MOBILE_BOOTSTRAP_ACCOUNT_2"):
+                bootstrap_mobile_accounts_from_env(TEST_MOBILE_DB)
+
     def test_environment_bootstrap_rejects_short_password_without_logging_it(self):
         import json
 

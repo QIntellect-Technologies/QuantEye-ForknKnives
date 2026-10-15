@@ -70,6 +70,31 @@ pip install -r requirements.txt
 
 Copy `.env.example` to `.env` and replace the example values with private values before running the application. `FLASK_SECRET_KEY` protects sessions and `ADMIN_CONFIG_PASSWORD` unlocks admin configuration. Keep `.env` private; it is excluded from Git. Camera URLs can be configured in the UI or supplied through the optional camera variables.
 
+### Railway Mobile Account Variables
+
+Set each mobile login in a separate Railway service variable. The slots are fixed:
+
+- `MOBILE_BOOTSTRAP_ACCOUNT_1`: username `sikander-fnk`, Sikander FnK, `employee_id` 95
+- `MOBILE_BOOTSTRAP_ACCOUNT_2`: username `shahid-fnk`, Shahid Assistant Chef FnK, `employee_id` 96
+- `MOBILE_BOOTSTRAP_ACCOUNT_3`: username `salman-fnk`, Salman FnK, `employee_id` 97
+- `MOBILE_BOOTSTRAP_ACCOUNT_4`: username `shoaib-fnk`, Shoaib FnK, `employee_id` 98
+- `MOBILE_BOOTSTRAP_ACCOUNT_5`: username `siddique-fnk`, Siddique FnK, `employee_id` 99
+- `MOBILE_BOOTSTRAP_ACCOUNT_6`: username `admin-fnk`, mobile admin, `role` `admin`, with no `employee_id`
+
+Each variable value is one JSON object. Employee example:
+
+```json
+{"username":"salman-fnk","password":"use-a-private-password","role":"employee","employee_id":97,"branch_id":"branch-main"}
+```
+
+Admin example for slot 6:
+
+```json
+{"username":"admin-fnk","password":"use-a-private-password","role":"admin","branch_id":"branch-main"}
+```
+
+All six numbered variables are required when using this format. The older `MOBILE_BOOTSTRAP_ACCOUNTS` JSON-array variable remains supported when no numbered variables are set; numbered variables take precedence when present. Existing accounts are not renamed or password-reset by bootstrap; using a new username can create an additional login for the same employee, and changing a Railway password alone does not change an already-provisioned account.
+
 ### Step 3: Download Models
 
 ```bash

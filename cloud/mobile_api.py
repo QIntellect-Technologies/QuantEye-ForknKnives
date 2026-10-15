@@ -22,6 +22,7 @@ logger = logging.getLogger("cloud.mobile")
 mobile_bp = Blueprint("mobile_api", __name__)
 MOBILE_TOKEN_MAX_AGE_SECONDS = 14 * 24 * 60 * 60
 MOBILE_SHIFT_TICKET_MAX_AGE_SECONDS = 60
+MOBILE_BOOTSTRAP_ACCOUNT_SLOTS = 6
 
 
 def _serializer() -> URLSafeTimedSerializer:
@@ -109,17 +110,47 @@ def create_mobile_account(
 
 def bootstrap_mobile_accounts_from_env(db_path=None) -> Dict[str, int]:
     """Provision configured mobile accounts without exposing passwords in logs."""
-    raw_config = os.environ.get("MOBILE_BOOTSTRAP_ACCOUNTS")
     result = {"created": 0, "unchanged": 0, "mismatched": 0}
-    if not raw_config:
-        return result
+    individual_configs = []
+    for account_number in range(1, MOBILE_BOOTSTRAP_ACCOUNT_SLOTS + 1):
+        variable_name = f"MOBILE_BOOTSTRAP_ACCOUNT_{account_number}"
+        raw_account = os.environ.get(variable_name)
+        if raw_account:
+            individual_configs.append((account_number, variable_name, raw_account))
 
-    try:
-        configured_accounts = json.loads(raw_config)
-    except json.JSONDecodeError as error:
-        raise ValueError("MOBILE_BOOTSTRAP_ACCOUNTS must contain valid JSON") from error
-    if not isinstance(configured_accounts, list):
-        raise ValueError("MOBILE_BOOTSTRAP_ACCOUNTS must be a JSON array")
+    if individual_configs:
+        configured_numbers = {number for number, _, _ in individual_configs}
+        missing_numbers = [
+            number for number in range(1, MOBILE_BOOTSTRAP_ACCOUNT_SLOTS + 1)
+            if number not in configured_numbers
+        ]
+        if missing_numbers:
+            missing_variables = ", ".join(
+                f"MOBILE_BOOTSTRAP_ACCOUNT_{number}" for number in missing_numbers
+            )
+            raise ValueError(f"All six numbered mobile account variables are required; missing: {missing_variables}")
+
+        configured_accounts = []
+        for account_number, variable_name, raw_account in individual_configs:
+            try:
+                account = json.loads(raw_account)
+            except json.JSONDecodeError as error:
+                raise ValueError(f"{variable_name} must contain a valid JSON object") from error
+            if not isinstance(account, dict):
+                raise ValueError(f"{variable_name} must contain a JSON object")
+            configured_accounts.append(account)
+        if os.environ.get("MOBILE_BOOTSTRAP_ACCOUNTS"):
+            logger.warning("MOBILE_BOOTSTRAP_ACCOUNTS is ignored because numbered mobile account variables are configured.")
+    else:
+        raw_config = os.environ.get("MOBILE_BOOTSTRAP_ACCOUNTS")
+        if not raw_config:
+            return result
+        try:
+            configured_accounts = json.loads(raw_config)
+        except json.JSONDecodeError as error:
+            raise ValueError("MOBILE_BOOTSTRAP_ACCOUNTS must contain valid JSON") from error
+        if not isinstance(configured_accounts, list):
+            raise ValueError("MOBILE_BOOTSTRAP_ACCOUNTS must be a JSON array")
 
     accounts = []
     seen_usernames = set()
